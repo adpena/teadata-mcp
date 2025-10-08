@@ -60,3 +60,44 @@ The scaffolding already demonstrates the "refuse to answer" behaviour.  When the
 underlying data is not available the server returns a status of
 ``QueryResultStatus.UNKNOWN`` instead of attempting to guess.  Tests assert this
 behaviour to guard against future regressions.
+
+## Using the server with ChatGPT for Developers
+
+ChatGPT for Developers can connect to local MCP servers by reading a JSON
+configuration file from its application support directory.  After installing the
+package (see the quick-start instructions above) create or update the
+configuration file to point at the local stdio entry point:
+
+1. Quit the ChatGPT desktop application if it is running.
+2. Create the configuration directory if it does not exist yet:
+
+   ```bash
+   mkdir -p "${HOME}/Library/Application Support/com.openai.chat"
+   ```
+
+3. Open `"${HOME}/Library/Application Support/com.openai.chat/config.json"` and
+   add a new entry under the top-level `"mcpServers"` key:
+
+   ```json
+   {
+     "mcpServers": {
+       "teadata": {
+         "command": "python",
+         "args": ["-m", "teadata_mcp"],
+         "env": {
+           "TEADATA_SNAPSHOT": "/absolute/path/to/your/snapshot"
+         }
+       }
+     }
+   }
+   ```
+
+   The `env` block is optional, but it is often convenient to point the server
+   at a specific TEA Data snapshot.  Remove the key entirely if you would rather
+   let the provider use its default search behaviour.
+
+4. Restart the ChatGPT application.  The MCP server should now appear in the
+   *Developers → Manage MCP Servers* panel, and ChatGPT can invoke it directly.
+
+If you use the ChatGPT for Developers command-line client, supply the same
+`command` and `args` values when registering the MCP server with the CLI.
