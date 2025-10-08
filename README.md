@@ -26,12 +26,14 @@ avoid collisions with the original source tree and to make packaging easier.
 
 ## Quick start
 
-Install the project in editable mode along with the official MCP Python tools:
+Install the project in editable mode:
 
 ```bash
 pip install -e .[dev]
-pip install modelcontextprotocol
 ```
+
+The runtime dependency on `modelcontextprotocol` is now installed automatically
+with the package.
 
 Run the reference stdio server:
 
