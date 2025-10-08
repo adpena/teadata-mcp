@@ -36,6 +36,21 @@ python -m pip install -e '.[dev]'
 The runtime dependency on `modelcontextprotocol` is now installed automatically
 with the package.  If you previously installed the project before this
 dependency was added, rerun the command above to refresh the editable install.
+Verify that the module is importable with the same interpreter you use to start
+the server:
+
+```bash
+python -c "import modelcontextprotocol; print(modelcontextprotocol.__file__)"
+```
+
+If the import still fails, install the upstream package directly from GitHub to
+work around the packaging issue tracked in the
+[`modelcontextprotocol` issue tracker](https://github.com/modelcontextprotocol/python-sdk/issues):
+
+```bash
+python -m pip install --upgrade \
+  'modelcontextprotocol @ git+https://github.com/modelcontextprotocol/python-sdk.git'
+```
 
 Run the reference stdio server:
 
@@ -105,3 +120,21 @@ configuration file to point at the local stdio entry point:
 
 If you use the ChatGPT for Developers command-line client, supply the same
 `command` and `args` values when registering the MCP server with the CLI.
+
+## Troubleshooting the MCP dependency
+
+The `modelcontextprotocol` package is under active development.  If `python -m
+pip install -e '.[dev]'` reports that the distribution is unavailable or the
+server still raises `ModuleNotFoundError: No module named 'modelcontextprotocol'`
+after installation:
+
+1. Confirm that you are running the install command with the interpreter you
+   plan to use for `python -m teadata_mcp`.
+2. Clear out any stale editable installs that predate the dependency update by
+   rerunning the install command.
+3. Install the upstream SDK directly from GitHub using the command listed above.
+   The GitHub install has been the most reliable workaround reported in the
+   [`modelcontextprotocol` issue tracker](https://github.com/modelcontextprotocol/python-sdk/issues).
+4. If the import still fails, run `python -m pip show modelcontextprotocol` to
+   inspect where the package was installed and confirm that location appears on
+   `sys.path` when launching the server.

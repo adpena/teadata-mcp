@@ -22,9 +22,11 @@ async def build_app(config: ServerConfig):
         from modelcontextprotocol import server as mcp_server  # type: ignore
     except ImportError as exc:  # pragma: no cover - exercised manually
         raise RuntimeError(
-            "modelcontextprotocol is not installed. Install it with "
-            "`python -m pip install modelcontextprotocol` using the same "
-            "interpreter you use to launch the server."
+            "modelcontextprotocol is not installed or cannot be imported. Install "
+            "it with `python -m pip install modelcontextprotocol` using the same "
+            "interpreter you use to launch the server. If the module is still "
+            "unavailable, install the upstream SDK directly from GitHub with "
+            "`python -m pip install --upgrade 'modelcontextprotocol @ git+https://github.com/modelcontextprotocol/python-sdk.git'`."
         ) from exc
 
     engine_provider = DataEngineProvider(config)
