@@ -138,3 +138,30 @@ after installation:
 4. If the import still fails, run `python -m pip show modelcontextprotocol` to
    inspect where the package was installed and confirm that location appears on
    `sys.path` when launching the server.
+
+## Deploying the server to Render
+
+The reference implementation runs over stdin/stdout transport only.  Remote
+hosting platforms such as Render do not expose an interactive standard I/O
+stream to inbound clients, so the binary built from `python -m teadata_mcp`
+cannot be deployed directly as a Render service.  The existing entry point
+initialises :class:`modelcontextprotocol.adapters.stdio.StdioServerTransport`
+and blocks waiting for traffic on the local file descriptors instead of opening
+a network listener.  To serve MCP traffic over the public internet you must
+supply an alternate transport layer (for example a small ASGI or WebSocket
+bridge) that translates between Render's HTTP load balancer and the MCP
+protocol primitives before calling ``teadata_mcp.server.build_app``.
+
+If you add such a network-aware adapter, Render's "Web Service" product is the
+closest fit.  The "Starter" tier is the lowest priced always-on option at the
+time of writing, and you can either
+
+* deploy from this repository directly with Render's native build system (set
+  **Start Command** to the module that launches your network adapter), or
+* push a Dockerfile that installs the project and launches the same command.
+
+Render's free tier spins services down after periods of inactivity and is not
+suited for MCP clients that expect a persistent connection.  If you only need
+the tools for personal experimentation, running the stdio server locally and
+connecting via the ChatGPT for Developers desktop app remains the most cost
+effective workflow.
