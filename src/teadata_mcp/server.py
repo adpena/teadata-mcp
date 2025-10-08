@@ -23,7 +23,8 @@ async def build_app(config: ServerConfig):
     except ImportError as exc:  # pragma: no cover - exercised manually
         raise RuntimeError(
             "modelcontextprotocol is not installed. Install it with "
-            "`pip install modelcontextprotocol` to run the MCP server."
+            "`python -m pip install modelcontextprotocol` using the same "
+            "interpreter you use to launch the server."
         ) from exc
 
     engine_provider = DataEngineProvider(config)

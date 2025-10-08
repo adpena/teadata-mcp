@@ -26,14 +26,16 @@ avoid collisions with the original source tree and to make packaging easier.
 
 ## Quick start
 
-Install the project in editable mode:
+Install the project in editable mode with the same Python interpreter you plan
+to use for running the server:
 
 ```bash
-pip install -e .[dev]
+python -m pip install -e '.[dev]'
 ```
 
 The runtime dependency on `modelcontextprotocol` is now installed automatically
-with the package.
+with the package.  If you previously installed the project before this
+dependency was added, rerun the command above to refresh the editable install.
 
 Run the reference stdio server:
 
