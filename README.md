@@ -27,20 +27,29 @@ avoid collisions with the original source tree and to make packaging easier.
 ## Quick start
 
 Install the project in editable mode with the same Python interpreter you plan
-to use for running the server:
+to use for running the server.  The commands below show both the standard
+`python -m pip` invocation and the equivalent `uv` workflow.  Using
+[`uv`](https://docs.astral.sh/uv/latest/) can be more robust on platforms where
+`pip` occasionally fails to resolve the `modelcontextprotocol` dependency.
 
 ```bash
+# Standard Python packaging tools
 python -m pip install -e '.[dev]'
+
+# Or, with uv
+uv pip install -e '.[dev]'
 ```
 
 The runtime dependency on `modelcontextprotocol` is now installed automatically
 with the package.  If you previously installed the project before this
-dependency was added, rerun the command above to refresh the editable install.
-Verify that the module is importable with the same interpreter you use to start
-the server:
+dependency was added, rerun the command above (with `pip` or `uv`) to refresh
+the editable install.  Verify that the module is importable with the same
+interpreter you use to start the server:
 
 ```bash
 python -c "import modelcontextprotocol; print(modelcontextprotocol.__file__)"
+# or
+uv run -- python -c "import modelcontextprotocol; print(modelcontextprotocol.__file__)"
 ```
 
 If the import still fails, install the upstream package directly from GitHub to
@@ -50,12 +59,26 @@ work around the packaging issue tracked in the
 ```bash
 python -m pip install --upgrade \
   'modelcontextprotocol @ git+https://github.com/modelcontextprotocol/python-sdk.git'
+# or
+uv pip install --upgrade \
+  'modelcontextprotocol @ git+https://github.com/modelcontextprotocol/python-sdk.git'
 ```
 
 Run the reference stdio server:
 
 ```bash
 python -m teadata_mcp
+# or
+uv run -- python -m teadata_mcp
+```
+
+If the server still fails to import `modelcontextprotocol`, run the built-in
+diagnostics to check the active environment:
+
+```bash
+python -m teadata_mcp --diagnose
+# or
+uv run -- python -m teadata_mcp --diagnose
 ```
 
 By default the server will search for a pre-built TEA Data snapshot using the

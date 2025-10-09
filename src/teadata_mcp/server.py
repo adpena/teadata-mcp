@@ -1,8 +1,14 @@
 """Entry points for running the TEA Data MCP server."""
 from __future__ import annotations
 
+import argparse
 import asyncio
-from typing import Any, Dict
+import importlib.metadata
+import importlib.util
+import os
+from pathlib import Path
+import sys
+from typing import Any, Dict, Iterable, TextIO
 
 from .config import ServerConfig
 from .data_engine_provider import DataEngineProvider
@@ -81,8 +87,121 @@ async def serve(config: ServerConfig) -> None:
     await transport.serve(app)
 
 
-def run() -> None:
-    """Synchronously launch the server using :func:`asyncio.run`."""
+def _format_check(prefix: str, message: str) -> str:
+    return f"{prefix} {message}"
+
+
+def _diagnose_dependency(
+    module: str,
+    *,
+    stream: TextIO,
+    missing_hint: Iterable[str] | None = None,
+) -> bool:
+    """Inspect a dependency and report whether it is importable."""
+
+    spec = importlib.util.find_spec(module)
+    if spec is None:
+        hint = "\n".join(missing_hint or ())
+        stream.write(
+            _format_check(
+                "✖",
+                f"Could not locate '{module}' on sys.path."
+                + (f"\n{hint}" if hint else ""),
+            )
+            + "\n",
+        )
+        return False
+
+    try:
+        version = importlib.metadata.version(module.split(".")[0])
+    except importlib.metadata.PackageNotFoundError:
+        version = "unknown"
+
+    location = spec.origin or getattr(spec.loader, "path", "unknown location")
+    stream.write(
+        _format_check(
+            "✓",
+            f"Found '{module}' (version {version}) at {location}",
+        )
+        + "\n",
+    )
+    return True
+
+
+def diagnose_environment(stream: TextIO | None = None) -> bool:
+    """Print diagnostics that help debug local environment issues."""
+
+    stream = stream or sys.stdout
+    ok = True
+
+    if not _diagnose_dependency(
+        "modelcontextprotocol",
+        stream=stream,
+        missing_hint=[
+            "Reinstall the package with `python -m pip install -e '.[dev]'`",
+            "or `uv pip install -e '.[dev]'` in the same environment.",
+            "If the module is still missing, install the SDK from GitHub with",
+            "`python -m pip install --upgrade 'modelcontextprotocol @ git+https://github.com/modelcontextprotocol/python-sdk.git'`.",
+        ],
+    ):
+        ok = False
+
+    if not _diagnose_dependency(
+        "modelcontextprotocol.adapters.stdio",
+        stream=stream,
+        missing_hint=[
+            "The stdio transport ships with the full SDK.",
+            "Confirm that the same interpreter installs and runs the package.",
+        ],
+    ):
+        ok = False
+
+    snapshot = os.environ.get("TEADATA_SNAPSHOT")
+    if snapshot:
+        snapshot_path = Path(snapshot)
+        if snapshot_path.exists():
+            stream.write(
+                _format_check(
+                    "✓",
+                    f"TEADATA_SNAPSHOT points to {snapshot_path.resolve()}",
+                )
+                + "\n",
+            )
+        else:
+            stream.write(
+                _format_check(
+                    "✖",
+                    f"TEADATA_SNAPSHOT points to missing path: {snapshot_path}",
+                )
+                + "\n",
+            )
+            ok = False
+    else:
+        stream.write(
+            _format_check(
+                "•",
+                "TEADATA_SNAPSHOT is not set; default snapshot search will be used.",
+            )
+            + "\n",
+        )
+
+    return ok
+
+
+def run(argv: list[str] | None = None) -> None:
+    """Synchronously launch the server or run diagnostics."""
+
+    parser = argparse.ArgumentParser(description="TEA Data MCP server entry point")
+    parser.add_argument(
+        "--diagnose",
+        action="store_true",
+        help="Print environment diagnostics instead of launching the server.",
+    )
+    args = parser.parse_args(argv)
+
+    if args.diagnose:
+        success = diagnose_environment()
+        raise SystemExit(0 if success else 1)
 
     config = ServerConfig()
     asyncio.run(serve(config))
