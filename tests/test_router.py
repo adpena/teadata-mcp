@@ -129,6 +129,7 @@ def test_get_campus_detail_returns_data(mock_build, mock_find):
     
     s1 = MagicMock()
     s1.name = "Alpha"
+    s1.campus_number = "1"
     s1.to_dict.return_value = {"name": "Alpha", "number": "1"}
     mock_build.return_value = s1
 

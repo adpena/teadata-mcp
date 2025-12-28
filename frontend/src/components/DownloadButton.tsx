@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Button } from '@openai/apps-sdk-ui/components/Button';
 import { Download } from 'lucide-react';
 
@@ -24,7 +24,7 @@ export function DownloadButton({ data, filename, label = "Download JSON", size =
   };
 
   return (
-    <Button variant="ghost" size={size} onClick={handleDownload} className="print:hidden">
+    <Button variant="ghost" size={size} onClick={handleDownload} className="print:hidden" color="primary">
       <Download className="w-4 h-4 mr-2" />
       {label}
     </Button>

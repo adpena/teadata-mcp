@@ -1,58 +1,28 @@
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+import React from 'react';
 
-// Mock window.openai for tests
-Object.defineProperty(window, 'openai', {
-  value: {
-    callTool: vi.fn(),
-  },
-  writable: true,
-});
-
-// Mock matchMedia for Recharts/Charts
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
-
-// Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
-
-// Mock @openai/apps-sdk-ui components
-const MockComponent = ({ children, className, ...props }: any) => (
-  <div className={className} {...props} data-testid="mock-component">{children}</div>
-);
-
+// Mock OpenAI Apps SDK UI components
 vi.mock('@openai/apps-sdk-ui/components/Button', () => ({
-  Button: ({ children, onClick, disabled, className }: any) => (
-    <button onClick={onClick} disabled={disabled} className={className}>{children}</button>
+  Button: ({ children, onClick, disabled, className, type, color }: any) => (
+    <button onClick={onClick} disabled={disabled} className={className} type={type} data-color={color}>
+      {children}
+    </button>
   ),
 }));
 
-vi.mock('@openai/apps-sdk-ui/components/Badge', () => ({
-  Badge: ({ children, className }: any) => <span className={className}>{children}</span>,
-}));
-
 vi.mock('@openai/apps-sdk-ui/components/Input', () => ({
-  Input: (props: any) => <input {...props} data-testid="mock-input" />,
+  Input: (props: any) => <input {...props} data-testid="openai-input" />,
 }));
 
 vi.mock('@openai/apps-sdk-ui/components/Select', () => ({
-  Select: (props: any) => <select {...props} data-testid="mock-select">{props.children}</select>,
-}));
-
-vi.mock('@openai/apps-sdk-ui/components/AppsSDKUIProvider', () => ({
-  AppsSDKUIProvider: ({ children }: any) => <>{children}</>,
+  Select: ({ value, onChange, options }: any) => (
+    <select value={value} onChange={onChange} data-testid="openai-select">
+      {options.map((opt: any) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  ),
 }));

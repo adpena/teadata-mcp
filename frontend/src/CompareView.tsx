@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { api } from './services/api';
 import { DownloadButton } from './components/DownloadButton';
@@ -30,39 +30,39 @@ export function CompareView({ ids }: CompareViewProps) {
   }, [ids]);
 
   if (loading) {
-      return (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-              <Loader2 className="w-8 h-8 animate-spin mb-4" />
-              <p>Comparing campuses...</p>
-          </div>
-      );
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+        <Loader2 className="w-8 h-8 animate-spin mb-4" />
+        <p>Comparing campuses...</p>
+      </div>
+    );
   }
 
   if (error) {
-      return <div className="text-red-500 text-center py-10">{error}</div>;
+    return <div className="text-red-500 text-center py-10">{error}</div>;
   }
 
   if (data.length === 0) {
-      return <div className="text-center py-10">No data found.</div>;
+    return <div className="text-center py-10">No data found.</div>;
   }
 
   // Define metrics to show
   const metrics = [
-      { label: 'Rating', key: 'rating' },
-      { label: 'Enrollment', key: 'enrollment', format: (v: any) => v?.toLocaleString() },
-      { label: 'Avg Teacher Salary', key: 'avg_teacher_salary', format: (v: any) => v ? `$${v.toLocaleString()}` : '-' },
-      { label: 'Student/Teacher Ratio', key: 'student_teacher_ratio', format: (v: any) => v ? `${v.toFixed(1)}:1` : '-' },
-      { label: '% Econ Disadvantaged', key: 'percent_econ_disadv', format: (v: any) => v ? `${v.toFixed(1)}%` : '-' },
-      { label: '% Special Ed', key: 'percent_special_ed', format: (v: any) => v ? `${v.toFixed(1)}%` : '-' },
+    { label: 'Rating', key: 'rating' },
+    { label: 'Enrollment', key: 'enrollment', format: (v: any) => v?.toLocaleString() },
+    { label: 'Avg Teacher Salary', key: 'avg_teacher_salary', format: (v: any) => v ? `$${v.toLocaleString()}` : '-' },
+    { label: 'Student/Teacher Ratio', key: 'student_teacher_ratio', format: (v: any) => v ? `${v.toFixed(1)}:1` : '-' },
+    { label: '% Econ Disadvantaged', key: 'percent_econ_disadv', format: (v: any) => v ? `${v.toFixed(1)}%` : '-' },
+    { label: '% Special Ed', key: 'percent_special_ed', format: (v: any) => v ? `${v.toFixed(1)}%` : '-' },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Campus Comparison</h1>
-          <DownloadButton data={data} filename="campus-comparison" />
+        <h1 className="text-2xl font-bold">Campus Comparison</h1>
+        <DownloadButton data={data} filename="campus-comparison" />
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>

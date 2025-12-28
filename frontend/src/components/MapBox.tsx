@@ -7,8 +7,7 @@ import {
     isLikelyWebMercator,
     unprojectWebMercator,
     normalizeGeoJSON,
-    buildPointFeatureCollection,
-    buildBoundaryFeatureCollection
+
 } from './mapUtils';
 
 // Fix for default Leaflet icons in Vite/Webpack
@@ -117,10 +116,10 @@ function BoundsFitter({
                 console.warn("Failed to fit bounds to boundary", e);
             }
         } else if (markers && markers.length > 1) {
-             const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lon]));
-             if (bounds.isValid()) {
-                 map.fitBounds(bounds, { padding: [50, 50] });
-             }
+            const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lon]));
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
         }
     }, [bounds, boundary, markers, map]);
 
@@ -244,12 +243,12 @@ function FlowLines({
     );
 }
 
-export function MapBox({ 
-    center, 
-    zoom = 13, 
-    markers = [], 
+export function MapBox({
+    center,
+    zoom = 13,
+    markers = [],
     bounds,
-    boundary, 
+    boundary,
     className = "h-[300px] w-full rounded-lg shadow-sm border border-gray-200",
     scrollWheelZoom = false,
     renderer,
@@ -339,10 +338,10 @@ export function MapBox({
     }
 
     return (
-        <MapContainer 
-            center={normalizedCenter} 
-            zoom={zoom} 
-            scrollWheelZoom={scrollWheelZoom} 
+        <MapContainer
+            center={normalizedCenter}
+            zoom={zoom}
+            scrollWheelZoom={scrollWheelZoom}
             preferCanvas={true}
             className={className}
         >
@@ -351,7 +350,7 @@ export function MapBox({
                 url={BASE_TILE_URL}
                 detectRetina={true}
             />
-            
+
             {shouldCluster ? (
                 <ClusteredMarkers markers={normalizedMarkers} />
             ) : (
@@ -386,14 +385,14 @@ export function MapBox({
             {normalizedLines.length > 0 && <FlowLines lines={normalizedLines} />}
 
             {normalizedBoundary && (
-                <GeoJSON 
-                    data={normalizedBoundary} 
+                <GeoJSON
+                    data={normalizedBoundary}
                     style={{
                         color: '#3b82f6', // blue-500
                         weight: 2,
                         opacity: 0.6,
                         fillOpacity: 0.1
-                    }} 
+                    }}
                 />
             )}
 

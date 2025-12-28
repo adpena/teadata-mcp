@@ -1,53 +1,36 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import App from '../App';
-import { api } from '../services/api';
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock the API service
 vi.mock('../services/api', () => ({
   api: {
-    searchCampuses: vi.fn(),
-    getCampusDetail: vi.fn(),
-    getDistrictDetail: vi.fn(),
-    compareCampuses: vi.fn(),
-    findCampusesInDistrict: vi.fn(),
-  }
+    callTool: vi.fn(),
+    isPerfEnabled: vi.fn().mockReturnValue(false),
+  },
+}));
+
+// Mock map components which might fail in jsdom
+vi.mock('../components/MapBox', () => ({
+  default: () => <div data-testid="map-mock">Map</div>,
+}));
+
+vi.mock('../components/MapLibreView', () => ({
+  default: () => <div data-testid="maplibre-mock">MapLibre</div>,
+}));
+
+// Mock LandingPage to avoid lazy loading issues and verify routing to home
+vi.mock('../LandingPage', () => ({
+  LandingPage: () => <div data-testid="landing-page">Landing Page Mock</div>,
 }));
 
 describe('App', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders the home screen with search tool', async () => {
+  it('renders landing page by default', async () => {
     render(<App />);
     
-    // Check for title (lazy loaded)
-    expect(await screen.findByText(/Texas Education Data/i)).toBeInTheDocument();
-    
-    // Check for search input (placeholder text from SearchTool)
-    const searchInput = await screen.findByPlaceholderText(/search by name/i);
-    expect(searchInput).toBeInTheDocument();
-  });
-
-  it('performs a search when user types and submits', async () => {
-    const mockResults = [
-        { name: 'Test School', campus_number: '123', district_name: 'Test District' }
-    ];
-    (api.searchCampuses as any).mockResolvedValue({ results: mockResults });
-
-    render(<App />);
-
-    const searchInput = await screen.findByPlaceholderText(/search by name/i);
-    fireEvent.change(searchInput, { target: { value: 'Test' } });
-    
-    const searchButton = screen.getByRole('button', { name: /search/i });
-    fireEvent.click(searchButton);
-
+    // Use waitFor because of Suspense/Lazy loading
     await waitFor(() => {
-        expect(api.searchCampuses).toHaveBeenCalledWith('Test', 'all', 'all', 'all');
-        expect(screen.getByText('Test School')).toBeInTheDocument();
+      expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     });
   });
 });

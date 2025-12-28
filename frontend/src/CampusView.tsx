@@ -24,28 +24,28 @@ export function CampusView({ campus }: CampusViewProps) {
           <p className="text-gray-600">{campus.district_name} • {campus.campus_number}</p>
         </div>
         <div className="flex space-x-2">
-            <DownloadButton data={campus} filename={`campus-${campus.campus_number}`} label="Export" />
-            <Badge variant={campus.charter ? 'warning' : 'neutral'}>
+          <DownloadButton data={campus} filename={`campus-${campus.campus_number}`} label="Export" />
+          <Badge variant="solid" color={campus.charter ? 'warning' : 'secondary'}>
             {campus.charter_label}
-            </Badge>
+          </Badge>
         </div>
       </div>
 
       {hasLocation && (
-        <MapBox 
-          center={[campus.location.lat!, campus.location.lon!]} 
+        <MapBox
+          center={[campus.location.lat!, campus.location.lon!]}
           zoom={15}
           markers={[{
             lat: campus.location.lat!,
             lon: campus.location.lon!,
             title: campus.name,
             description: `Rating: ${campus.rating || 'N/A'}`,
-            rating: campus.rating || null
+            rating: campus.rating || undefined
           }]}
           className="h-[250px] w-full rounded-lg shadow-sm border border-gray-200"
         />
       )}
-      
+
       {hasLocation && <NearbyCampuses identifier={campus.campus_number} />}
 
       <div className="grid grid-cols-2 gap-4">
@@ -89,12 +89,12 @@ export function CampusView({ campus }: CampusViewProps) {
           </Suspense>
         </Card>
       </div>
-      
+
       <Card className="p-4 space-y-4">
-          <h3 className="font-bold border-b pb-2">Class Sizes by Grade</h3>
-          <Suspense fallback={<div className="h-[300px] w-full bg-gray-50 animate-pulse rounded flex items-center justify-center text-gray-400">Loading chart...</div>}>
-            <ClassSizeChart stats={campus.class_sizes} />
-          </Suspense>
+        <h3 className="font-bold border-b pb-2">Class Sizes by Grade</h3>
+        <Suspense fallback={<div className="h-[300px] w-full bg-gray-50 animate-pulse rounded flex items-center justify-center text-gray-400">Loading chart...</div>}>
+          <ClassSizeChart stats={campus.class_sizes} />
+        </Suspense>
       </Card>
     </div>
   );

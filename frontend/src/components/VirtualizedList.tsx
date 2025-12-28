@@ -30,16 +30,16 @@ export function VirtualizedList<T>({
   // Render a simple scrollable list instead.
   if (items.length < 100) {
     return (
-        <div 
-          className={`overflow-y-auto ${className || ''}`}
-          style={{ maxHeight }}
-        >
-            {items.map((item, index) => (
-                <div key={itemKey ? itemKey(item, index) : index} style={{ height: itemHeight }}>
-                    {renderItem(item, index)}
-                </div>
-            ))}
-        </div>
+      <div
+        className={`overflow-y-auto ${className || ''}`}
+        style={{ maxHeight }}
+      >
+        {items.map((item, index) => (
+          <div key={itemKey ? itemKey(item, index) : index} style={{ height: itemHeight }}>
+            {renderItem(item, index)}
+          </div>
+        ))}
+      </div>
     );
   }
 
@@ -53,9 +53,9 @@ export function VirtualizedList<T>({
           width={width}
           itemCount={items.length}
           itemSize={itemHeight}
-          itemKey={(index) => (itemKey ? itemKey(items[index], index) : index)}
+          itemKey={(index: number) => (itemKey ? itemKey(items[index], index) : index)}
         >
-          {({ index, style }) => (
+          {({ index, style }: { index: number; style: any }) => (
             <div style={style} className="pr-2">
               {renderItem(items[index], index)}
             </div>

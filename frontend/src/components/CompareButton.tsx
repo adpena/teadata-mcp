@@ -6,7 +6,7 @@ import { GitCompare, Check } from 'lucide-react';
 interface CompareButtonProps {
   id: string;
   name: string;
-  variant?: 'ghost' | 'primary' | 'secondary' | 'outline' | 'destructive';
+  variant?: 'solid' | 'soft' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -25,14 +25,14 @@ export function CompareButton({ id, name, variant = 'outline', size = 'sm', clas
   };
 
   return (
-    <Button 
-      variant={selected ? 'primary' : variant} 
-      size={size} 
+    <Button
+      variant={selected ? 'solid' : variant}
+      size={size}
       onClick={handleClick}
       className={className}
+      color="primary"
     >
       {selected ? <Check className="w-4 h-4 mr-2" /> : <GitCompare className="w-4 h-4 mr-2" />}
-      {selected ? 'Added' : 'Compare'}
     </Button>
   );
 }

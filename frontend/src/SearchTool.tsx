@@ -28,49 +28,49 @@ export function SearchTool({ onSearch, isLoading }: SearchToolProps) {
           placeholder="Search by name, number, or district..."
           className="flex-1"
         />
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} color="primary">
           {isLoading ? 'Searching...' : 'Search'}
         </Button>
       </div>
       <div className="flex gap-4">
         <div className="w-48">
-            <Select
+          <Select
             value={status}
-            onValueChange={setStatus}
+            onChange={(e: any) => setStatus(e.target.value)}
             options={[
-                { label: 'Status: Any', value: 'all' },
-                { label: 'ISD Only', value: 'isd' },
-                { label: 'Charter Only', value: 'charter' },
-                { label: 'Private Only', value: 'private' },
+              { label: 'Status: Any', value: 'all' },
+              { label: 'ISD Only', value: 'isd' },
+              { label: 'Charter Only', value: 'charter' },
+              { label: 'Private Only', value: 'private' },
             ]}
-            />
+          />
         </div>
         <div className="w-48">
-            <Select
+          <Select
             value={rating}
-            onValueChange={setRating}
+            onChange={(e: any) => setRating(e.target.value)}
             options={[
-                { label: 'Rating: Any', value: 'all' },
-                { label: 'A', value: 'A' },
-                { label: 'B', value: 'B' },
-                { label: 'C', value: 'C' },
-                { label: 'D', value: 'D' },
-                { label: 'F', value: 'F' },
-                { label: 'Not Rated', value: 'NR' },
+              { label: 'Rating: Any', value: 'all' },
+              { label: 'A', value: 'A' },
+              { label: 'B', value: 'B' },
+              { label: 'C', value: 'C' },
+              { label: 'D', value: 'D' },
+              { label: 'F', value: 'F' },
+              { label: 'Not Rated', value: 'NR' },
             ]}
-            />
+          />
         </div>
         <div className="w-48">
-            <Select
+          <Select
             value={gradeLevel}
-            onValueChange={setGradeLevel}
+            onChange={(e: any) => setGradeLevel(e.target.value)}
             options={[
-                { label: 'Grade: Any', value: 'all' },
-                { label: 'Elementary', value: 'ELEMENTARY' },
-                { label: 'Middle School', value: 'MIDDLE' },
-                { label: 'High School', value: 'HIGH' },
+              { label: 'Grade: Any', value: 'all' },
+              { label: 'Elementary', value: 'ELEMENTARY' },
+              { label: 'Middle School', value: 'MIDDLE' },
+              { label: 'High School', value: 'HIGH' },
             ]}
-            />
+          />
         </div>
       </div>
     </form>

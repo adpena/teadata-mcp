@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { buildPointFeatureCollection, buildBoundaryFeatureCollection, buildLineFeatureCollection } from './mapUtils';
@@ -230,10 +230,9 @@ export default function MapLibreView({
                     })
                         .setLngLat(event.lngLat)
                         .setHTML(
-                            `<div class="font-semibold">${title}</div>${
-                                description
-                                    ? `<div class="text-sm">${description}</div>`
-                                    : ''
+                            `<div class="font-semibold">${title}</div>${description
+                                ? `<div class="text-sm">${description}</div>`
+                                : ''
                             }<div class="text-xs mt-1">Rating: ${rating}</div>`
                         )
                         .addTo(map);

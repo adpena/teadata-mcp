@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { DemographicStats } from '../types';
 
@@ -35,12 +35,12 @@ export function DemographicsChart({ stats }: DemographicsChartProps) {
             paddingAngle={2}
             dataKey="value"
           >
-            {data.map((entry, index) => (
+            {data.map((_, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-          <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '12px' }}/>
+          <Tooltip formatter={(value: any) => `${value?.toFixed(1)}%`} />
+          <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '12px' }} />
         </PieChart>
       </ResponsiveContainer>
     </div>

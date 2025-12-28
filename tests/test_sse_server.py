@@ -71,6 +71,26 @@ def test_tool_endpoint_call():
                     assert response.json()["payload"]["name"] == "Test District"
 
 
+def test_tool_endpoint_transfer_insights():
+    with TestClient(app) as client:
+        mock_router = MagicMock()
+        mock_router.get_transfer_insights.return_value = MagicMock(
+            status="ok",
+            payload={"available": True},
+            to_dict=lambda: {"status": "ok", "payload": {"available": True}}
+        )
+
+        with patch("teadata_mcp.sse_server.QueryRouter", return_value=mock_router):
+            with patch("teadata_mcp.sse_server.DataEngineProvider"):
+                with client:
+                    response = client.post(
+                        "/api/tool/get_transfer_insights",
+                        json={}
+                    )
+                    assert response.status_code == 200
+                    assert response.json()["payload"]["available"] is True
+
+
 def test_tool_endpoint_unknown_tool():
     with TestClient(app) as client:
          with patch("teadata_mcp.sse_server.QueryRouter"):

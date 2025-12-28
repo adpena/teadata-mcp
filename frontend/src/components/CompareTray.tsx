@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useCompare } from '../context/CompareContext';
 import { Button } from '@openai/apps-sdk-ui/components/Button';
 import { X, GitCompare } from 'lucide-react';
@@ -19,27 +19,28 @@ export function CompareTray({ onCompare }: CompareTrayProps) {
           Compare ({items.length}):
         </span>
         <div className="flex space-x-2">
-            {items.map(item => (
+          {items.map(item => (
             <div key={item.id} className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm">
-                <span className="truncate max-w-[150px]">{item.name}</span>
-                <button 
+              <span className="truncate max-w-[150px]">{item.name}</span>
+              <button
                 onClick={() => removeItem(item.id)}
                 className="ml-2 text-gray-400 hover:text-red-500"
-                >
+              >
                 <X className="w-3 h-3" />
-                </button>
+              </button>
             </div>
-            ))}
+          ))}
         </div>
       </div>
-      
+
       <div className="flex space-x-2 ml-4">
-        <Button variant="ghost" size="sm" onClick={clear}>Clear</Button>
-        <Button 
-            variant="primary" 
-            size="sm" 
-            onClick={onCompare}
-            disabled={items.length < 2}
+        <Button variant="ghost" size="sm" onClick={clear} color="secondary">Clear</Button>
+        <Button
+          variant="solid"
+          size="sm"
+          onClick={onCompare}
+          disabled={items.length < 2}
+          color="primary"
         >
           <GitCompare className="w-4 h-4 mr-2" />
           Compare

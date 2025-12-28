@@ -63,7 +63,7 @@ function findGeoJSONSample(geojson: any): [number, number] | null {
     return null;
 }
 
-export function normalizeGeoJSON(geojson: any) {
+export function normalizeGeoJSON(geojson: any): any {
     if (!geojson || typeof geojson !== 'object') {
         return geojson;
     }

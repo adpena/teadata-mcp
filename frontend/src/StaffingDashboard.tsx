@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
   CartesianGrid,
@@ -56,25 +56,25 @@ const METRIC_CONFIG: Array<{
   unit: string;
   format: (value: number) => string;
 }> = [
-  {
-    key: 'avg_teacher_experience_years',
-    label: 'Teacher Experience',
-    unit: 'Years',
-    format: (value) => `${value.toFixed(1)} yrs`
-  },
-  {
-    key: 'teacher_turnover_rate',
-    label: 'Teacher Turnover',
-    unit: 'Percent',
-    format: (value) => `${value.toFixed(1)}%`
-  },
-  {
-    key: 'student_teacher_ratio',
-    label: 'Student-Teacher Ratio',
-    unit: 'Students per Teacher',
-    format: (value) => `${value.toFixed(1)}:1`
-  }
-];
+    {
+      key: 'avg_teacher_experience_years',
+      label: 'Teacher Experience',
+      unit: 'Years',
+      format: (value) => `${value.toFixed(1)} yrs`
+    },
+    {
+      key: 'teacher_turnover_rate',
+      label: 'Teacher Turnover',
+      unit: 'Percent',
+      format: (value) => `${value.toFixed(1)}%`
+    },
+    {
+      key: 'student_teacher_ratio',
+      label: 'Student-Teacher Ratio',
+      unit: 'Students per Teacher',
+      format: (value) => `${value.toFixed(1)}:1`
+    }
+  ];
 
 function toNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined) return null;
@@ -140,7 +140,7 @@ function erf(x: number) {
   const y =
     1 -
     (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t) *
-      Math.exp(-absX * absX);
+    Math.exp(-absX * absX);
   return sign * y;
 }
 
@@ -365,11 +365,11 @@ export function StaffingDashboard() {
       return toNumber(campus.staffing.student_teacher_ratio);
     };
     const values: Record<MetricKey, { charter: number[]; traditional: number[] }> =
-      {
-        avg_teacher_experience_years: { charter: [], traditional: [] },
-        teacher_turnover_rate: { charter: [], traditional: [] },
-        student_teacher_ratio: { charter: [], traditional: [] }
-      };
+    {
+      avg_teacher_experience_years: { charter: [], traditional: [] },
+      teacher_turnover_rate: { charter: [], traditional: [] },
+      student_teacher_ratio: { charter: [], traditional: [] }
+    };
     METRIC_CONFIG.forEach((metric) => {
       values[metric.key].charter = charterCampuses
         .map((campus) => getValue(campus, metric.key))
@@ -400,9 +400,9 @@ export function StaffingDashboard() {
       const domain =
         combined.length > 0
           ? {
-              min: Math.min(...combined),
-              max: Math.max(...combined)
-            }
+            min: Math.min(...combined),
+            max: Math.max(...combined)
+          }
           : { min: 0, max: 1 };
       summaries[metric.key] = { charter, traditional, domain };
     });
@@ -707,7 +707,7 @@ export function StaffingDashboard() {
               <Scatter
                 data={scatterData}
                 shape={(props: any) => {
-                  if (props.cx === undefined || props.cy === undefined) return null;
+                  if (props.cx === undefined || props.cy === undefined) return <g />;
                   return (
                     <circle
                       cx={props.cx}

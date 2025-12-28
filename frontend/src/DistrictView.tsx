@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './components/Card';
 import { DistrictSummary } from './types';
 import { MapBox } from './components/MapBox';
@@ -24,42 +24,42 @@ export function DistrictView({ district, onCampusClick }: DistrictViewProps) {
     let active = true;
     async function fetchMapData() {
       if (!district.district_number) return;
-      
+
       setLoadingMap(true);
       try {
         const result = await api.findCampusesInDistrict(district.district_number);
 
         const payload = result.payload || result; // Handle raw payload or wrapper
-        
+
         let boundary = null;
         if (payload.district && payload.district.geometry) {
-            boundary = payload.district.geometry;
+          boundary = payload.district.geometry;
         }
 
         const bounds =
           payload.district &&
-          Array.isArray(payload.district.geometry_bounds) &&
-          payload.district.geometry_bounds.length === 4
+            Array.isArray(payload.district.geometry_bounds) &&
+            payload.district.geometry_bounds.length === 4
             ? payload.district.geometry_bounds
             : undefined;
 
         const markers = [];
         if (payload.geojson && payload.geojson.features) {
-            for (const feature of payload.geojson.features) {
-                if (feature.geometry && feature.geometry.type === 'Point') {
-                    const [lon, lat] = feature.geometry.coordinates;
-                    markers.push({
-                        lat,
-                        lon,
-                        title: feature.properties.name,
-                        description: `Rating: ${feature.properties.overall_rating_2025 || feature.properties.rating || 'N/A'}`,
-                        rating: feature.properties.overall_rating_2025 || feature.properties.rating || null,
-                        // We could pass campus_number to link clicks later
-                    });
-                }
+          for (const feature of payload.geojson.features) {
+            if (feature.geometry && feature.geometry.type === 'Point') {
+              const [lon, lat] = feature.geometry.coordinates;
+              markers.push({
+                lat,
+                lon,
+                title: feature.properties.name,
+                description: `Rating: ${feature.properties.overall_rating_2025 || feature.properties.rating || 'N/A'}`,
+                rating: feature.properties.overall_rating_2025 || feature.properties.rating || null,
+                // We could pass campus_number to link clicks later
+              });
             }
+          }
         }
-        
+
         if (active) {
           setMapData({ boundary, markers, bounds });
         }
@@ -89,26 +89,26 @@ export function DistrictView({ district, onCampusClick }: DistrictViewProps) {
       </div>
 
       <div className="h-[300px] w-full bg-gray-50 rounded-lg border border-gray-200 overflow-hidden relative">
-          {loadingMap && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-              </div>
-          )}
-          
-          {mapData ? (
-             <MapBox 
-                center={district.location ? [district.location.lat!, district.location.lon!] : [31.9686, -99.9018]} // Fallback to Texas center
-                zoom={district.location ? 10 : 6}
-                boundary={mapData.boundary}
-                bounds={mapData.bounds}
-                markers={mapData.markers}
-                className="h-full w-full"
-             />
-          ) : (
-             <div className="flex items-center justify-center h-full text-gray-400">
-                 {district.location ? 'Loading map...' : 'No location data available'}
-             </div>
-          )}
+        {loadingMap && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+          </div>
+        )}
+
+        {mapData ? (
+          <MapBox
+            center={district.location ? [district.location.lat!, district.location.lon!] : [31.9686, -99.9018]} // Fallback to Texas center
+            zoom={district.location ? 10 : 6}
+            boundary={mapData.boundary}
+            bounds={mapData.bounds}
+            markers={mapData.markers}
+            className="h-full w-full"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-400">
+            {district.location ? 'Loading map...' : 'No location data available'}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import { render, screen } from '@testing-library/react';
 import { CampusView } from '../CampusView';
 import { CampusDetail } from '../types';
@@ -37,7 +37,10 @@ const mockCampus: CampusDetail = {
         teacher_turnover_rate: 12.3
     },
     class_sizes: { elementary: {}, secondary: {} },
-    demographics: { ethnicity_percent: {}, programs_percent: {} },
+    demographics: {
+        ethnicity_percent: { african_american: 0, hispanic: 0, white: 0, asian: 0, pacific_islander: 0, two_or_more: 0 },
+        programs_percent: { special_ed: 0, econ_disadv: 0, emergent_bilingual: 0, immigrant: 0 }
+    },
     location: { lat: 29.9, lon: -95.4 },
     transfers_out: []
 };

@@ -1,4 +1,3 @@
-import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ClassSizeStats } from '../types';
 
@@ -9,10 +8,10 @@ interface ClassSizeChartProps {
 export function ClassSizeChart({ stats }: ClassSizeChartProps) {
   // Combine elementary and secondary data
   const rawData = { ...stats.elementary, ...stats.secondary };
-  
+
   // Define a sort order for grades
   const gradeOrder = ['PK', 'KG', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
-  
+
   const data = Object.entries(rawData)
     .filter(([_, size]) => size !== null)
     .map(([grade, size]) => ({
@@ -20,12 +19,12 @@ export function ClassSizeChart({ stats }: ClassSizeChartProps) {
       size: size
     }))
     .sort((a, b) => {
-        const idxA = gradeOrder.indexOf(a.grade);
-        const idxB = gradeOrder.indexOf(b.grade);
-        if (idxA === -1 && idxB === -1) return a.grade.localeCompare(b.grade);
-        if (idxA === -1) return 1;
-        if (idxB === -1) return -1;
-        return idxA - idxB;
+      const idxA = gradeOrder.indexOf(a.grade);
+      const idxB = gradeOrder.indexOf(b.grade);
+      if (idxA === -1 && idxB === -1) return a.grade.localeCompare(b.grade);
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
     });
 
   if (data.length === 0) {
@@ -42,9 +41,9 @@ export function ClassSizeChart({ stats }: ClassSizeChartProps) {
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="grade" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip 
-            formatter={(value: number) => [value.toFixed(1), 'Avg Students']}
-            labelFormatter={(label) => `Grade ${label}`}
+          <Tooltip
+            formatter={(value: any) => [value?.toFixed(1), 'Avg Students']}
+            labelFormatter={(label) => `Grade ${label} `}
           />
           <Bar dataKey="size" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Avg Class Size" />
         </BarChart>

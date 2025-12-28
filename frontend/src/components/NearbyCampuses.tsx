@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from './Card';
 import { api } from '../services/api';
 import { Loader2 } from 'lucide-react';
@@ -42,8 +42,8 @@ export function NearbyCampuses({ identifier }: NearbyCampusesProps) {
             <div className="font-semibold truncate" title={campus.name}>{campus.name}</div>
             <div className="text-gray-500 text-xs">{campus.district_name}</div>
             <div className="flex justify-between mt-2">
-                <span className="font-medium">{campus.rating || 'NR'}</span>
-                <span className="text-gray-400">{campus.distance_miles?.toFixed(1)} mi</span>
+              <span className="font-medium">{campus.rating || 'NR'}</span>
+              <span className="text-gray-400">{campus.distance_miles?.toFixed(1)} mi</span>
             </div>
           </Card>
         ))}
