@@ -1,0 +1,2038 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TEA Boundary Viewer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --accent: #0f766e;
+        --accent-2: #14b8a6;
+        --warning: #b45309;
+        --danger: #b91c1c;
+        --table-header: #f1f5f9;
+        --badge-bg: #e2e8f0;
+        --badge-text: #334155;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b1220;
+          --card: #111827;
+          --text: #e2e8f0;
+          --muted: #94a3b8;
+          --border: #1f2937;
+          --accent: #2dd4bf;
+          --accent-2: #0f766e;
+          --warning: #fbbf24;
+          --danger: #f87171;
+          --table-header: #1f2937;
+          --badge-bg: #1f2937;
+          --badge-text: #cbd5f5;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .header {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .title {
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .badge {
+        background: var(--badge-bg);
+        color: var(--badge-text);
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+
+      .summary-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: rgba(148, 163, 184, 0.08);
+      }
+
+      .summary-card h4 {
+        margin: 0 0 4px;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+      }
+
+      .summary-card p {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .notice {
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--warning);
+        background: rgba(251, 191, 36, 0.12);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+      }
+
+      .notice strong {
+        font-weight: 600;
+      }
+
+      .progress {
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--border);
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: none;
+        background: var(--accent);
+        color: #ffffff;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      button.secondary {
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .status-line {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .map-section {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        position: relative;
+      }
+
+      .map-header {
+        font-size: 13px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .map-canvas {
+        width: 100%;
+        height: 280px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(14, 165, 233, 0.06));
+        cursor: pointer;
+      }
+
+      .map-tooltip {
+        position: absolute;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.9);
+        color: #f8fafc;
+        font-size: 12px;
+        line-height: 1.3;
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+        pointer-events: none;
+        opacity: 0;
+        transform: translate(-50%, -120%);
+        transition: opacity 0.12s ease;
+        z-index: 5;
+        max-width: 220px;
+      }
+
+      .map-tooltip.visible {
+        opacity: 1;
+      }
+
+      .map-tooltip .tooltip-title {
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+
+      .map-tooltip .tooltip-sub {
+        font-size: 11px;
+        color: #cbd5f5;
+        margin-bottom: 6px;
+      }
+
+      .map-tooltip .tooltip-grid {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 2px 8px;
+      }
+
+      .map-tooltip .tooltip-label {
+        color: #cbd5f5;
+      }
+
+      .map-tooltip .tooltip-section {
+        margin-top: 6px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #cbd5f5;
+      }
+
+      .legend {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .map-attribution {
+        font-size: 10px;
+        color: var(--muted);
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .legend i {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+
+      .legend-block {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px 10px;
+        background: rgba(148, 163, 184, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .legend-title {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .legend-gradient {
+        height: 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: linear-gradient(90deg, #16a34a 0%, #fbbf24 50%, #dc2626 100%);
+      }
+
+      .legend-scale {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+      }
+
+      .legend-markers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .legend-marker {
+        background: #475569;
+      }
+
+      .legend-marker.charter {
+        background: transparent;
+        border: 2px solid #475569;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      thead th {
+        text-align: left;
+        padding: 10px;
+        background: var(--table-header);
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+
+      tbody td {
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      tbody tr:hover {
+        background: rgba(148, 163, 184, 0.08);
+      }
+
+      .rating-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(100, 116, 139, 0.15);
+        color: var(--text);
+      }
+
+      .empty {
+        padding: 12px;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .exports {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .export-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px 12px;
+        background: rgba(148, 163, 184, 0.08);
+        font-size: 12px;
+      }
+
+      .export-meta {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .export-actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .inline-code {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        background: rgba(148, 163, 184, 0.2);
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 11px;
+      }
+
+      .footer {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .debug-panel {
+        display: none;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: rgba(148, 163, 184, 0.08);
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.45;
+        white-space: pre-wrap;
+      }
+
+      .debug-panel.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="title-row">
+          <div class="title">Boundary Results</div>
+          <div class="badges" id="badges"></div>
+        </div>
+        <div class="subtitle" id="subtitle">Run a boundary tool to render results.</div>
+      </div>
+
+      <div class="summary" id="summary"></div>
+
+      <div class="notice" id="notice" style="display: none;"></div>
+      <div class="progress" id="progress">
+        <div id="progress-label"></div>
+        <div class="progress-bar">
+          <span class="progress-fill" id="progress-fill"></span>
+        </div>
+      </div>
+      <div class="exports" id="exports"></div>
+
+      <div class="controls">
+        <button id="load-more" disabled>Load more</button>
+        <button id="load-all" class="secondary" disabled>Load all</button>
+        <button id="fullscreen" class="secondary">Fullscreen</button>
+        <button id="open-boundary" class="secondary">Boundary source</button>
+        <button id="toggle-debug" class="secondary">Debug</button>
+        <div class="status-line" id="load-status"></div>
+      </div>
+
+      <div class="map-section" id="map-section">
+        <div class="map-header">Map Overview</div>
+        <canvas class="map-canvas" id="map-canvas"></canvas>
+        <div class="map-tooltip" id="map-tooltip"></div>
+        <div class="legend" id="legend"></div>
+        <div class="map-attribution">Tiles © Esri — Source: Esri, HERE, Garmin, FAO, NOAA, USGS</div>
+      </div>
+
+      <div class="table-section">
+        <div class="empty" id="table-empty">No campus list available yet.</div>
+        <table id="table" style="display: none;">
+          <thead id="table-head"></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+
+      <div class="debug-panel" id="debug-panel"></div>
+      <div class="footer" id="footer"></div>
+    </div>
+
+    <script>
+      (function () {
+        const DEFAULT_STATE = {
+          sessionId: null,
+          campuses: [],
+          features: [],
+          district: null,
+          filters: null,
+          pagination: null,
+          responseTrimmed: null,
+          missingLocation: null,
+          completeness: null,
+          table: null,
+          exports: null,
+          querySummary: null,
+          lastMessage: null,
+          lastStatus: null,
+          lastTool: null,
+          lastPayload: null
+        };
+
+        const elements = {
+          badges: document.getElementById("badges"),
+          subtitle: document.getElementById("subtitle"),
+          summary: document.getElementById("summary"),
+          notice: document.getElementById("notice"),
+          progress: document.getElementById("progress"),
+          progressLabel: document.getElementById("progress-label"),
+          progressFill: document.getElementById("progress-fill"),
+          exports: document.getElementById("exports"),
+          loadMore: document.getElementById("load-more"),
+          loadAll: document.getElementById("load-all"),
+          fullscreen: document.getElementById("fullscreen"),
+          openBoundary: document.getElementById("open-boundary"),
+          loadStatus: document.getElementById("load-status"),
+          mapSection: document.getElementById("map-section"),
+          mapCanvas: document.getElementById("map-canvas"),
+          mapTooltip: document.getElementById("map-tooltip"),
+          legend: document.getElementById("legend"),
+          table: document.getElementById("table"),
+          tableHead: document.getElementById("table-head"),
+          tableBody: document.getElementById("table-body"),
+          tableEmpty: document.getElementById("table-empty"),
+          toggleDebug: document.getElementById("toggle-debug"),
+          debugPanel: document.getElementById("debug-panel"),
+          footer: document.getElementById("footer")
+        };
+
+        let state = loadInitialState();
+        let isLoadingMore = false;
+        let isLoadingAll = false;
+        let tableSnapshot = null;
+        let mapRenderState = null;
+        let lastStateSnapshot = null;
+        let redrawPending = false;
+        let showDebug = false;
+        let lastRenderTiming = {
+          total_ms: 0,
+          table_ms: 0,
+          map_ms: 0
+        };
+        const tileCache = new Map();
+        const stateListeners = new Set();
+
+        function notifyStateChange() {
+          stateListeners.forEach((handler) => handler());
+        }
+
+        function progressToken(snapshot) {
+          const current = snapshot || state;
+          const loaded = (current.campuses || []).length;
+          const cursor = current.pagination?.cursor ?? "";
+          const nextCursor = current.pagination?.next_cursor ?? "";
+          return `${loaded}|${cursor}|${nextCursor}`;
+        }
+
+        function waitForProgressChange(prevToken, timeoutMs = 8000) {
+          return new Promise((resolve) => {
+            let timeoutId = null;
+            const handler = () => {
+              const nextToken = progressToken();
+              if (nextToken !== prevToken) {
+                if (timeoutId) {
+                  clearTimeout(timeoutId);
+                }
+                stateListeners.delete(handler);
+                resolve(true);
+              }
+            };
+            stateListeners.add(handler);
+            timeoutId = setTimeout(() => {
+              stateListeners.delete(handler);
+              resolve(false);
+            }, timeoutMs);
+          });
+        }
+
+        function loadInitialState() {
+          if (window.openai && window.openai.widgetState) {
+            return window.openai.widgetState;
+          }
+          return { ...DEFAULT_STATE };
+        }
+
+        function escapeHtml(value) {
+          if (value === null || value === undefined) {
+            return "";
+          }
+          return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function ratingLabel(value) {
+          const text = value || "";
+          if (!text) {
+            return "Not Rated";
+          }
+          return text;
+        }
+
+        function ratingColor(value) {
+          if (!value) {
+            return "#94a3b8";
+          }
+          const normalized = String(value).toUpperCase();
+          if (normalized.startsWith("A")) {
+            return "#22c55e";
+          }
+          if (normalized.startsWith("B")) {
+            return "#84cc16";
+          }
+          if (normalized.startsWith("C")) {
+            return "#fbbf24";
+          }
+          if (normalized.startsWith("D")) {
+            return "#f97316";
+          }
+          if (normalized.startsWith("F")) {
+            return "#ef4444";
+          }
+          if (normalized.includes("NOT RATED")) {
+            return "#94a3b8";
+          }
+          return "#60a5fa";
+        }
+
+        const POVERTY_FIELD_KEYS = [
+          "campus_2025_student_enrollment_economically_disadvantaged_percent"
+        ];
+
+        const DEMOGRAPHIC_FIELDS = [
+          { key: "campus_2025_student_enrollment_hispanic_percent", label: "Hispanic" },
+          { key: "campus_2025_student_enrollment_african_american_percent", label: "Black" },
+          { key: "campus_2025_student_enrollment_white_percent", label: "White" },
+          { key: "campus_2025_student_enrollment_asian_percent", label: "Asian" },
+          { key: "campus_2025_student_enrollment_two_or_more_races_percent", label: "Two or More" },
+          { key: "campus_2025_student_enrollment_english_learner_percent", label: "Emergent Bilingual" },
+          { key: "campus_2025_student_enrollment_special_ed_percent", label: "Special Ed" },
+          { key: "campus_2025_student_enrollment_immigrant_percent", label: "Immigrant" }
+        ];
+
+        function getMetaValue(props, key) {
+          if (!props || !key) {
+            return null;
+          }
+          const direct = props[key];
+          if (direct !== null && direct !== undefined) {
+            return direct;
+          }
+          const meta = props.meta;
+          if (meta && typeof meta === "object") {
+            const metaValue = meta[key];
+            if (metaValue !== null && metaValue !== undefined) {
+              return metaValue;
+            }
+          }
+          return null;
+        }
+
+        function parsePercent(value) {
+          if (value === null || value === undefined) {
+            return null;
+          }
+          const raw = String(value).trim();
+          if (!raw) {
+            return null;
+          }
+          const numeric = Number(raw.replace("%", ""));
+          if (!Number.isFinite(numeric)) {
+            return null;
+          }
+          if (numeric >= 0 && numeric <= 1) {
+            return numeric * 100;
+          }
+          return numeric;
+        }
+
+        function formatPercent(value) {
+          const numeric = parsePercent(value);
+          if (numeric === null) {
+            return null;
+          }
+          const rounded = Math.round(numeric * 10) / 10;
+          const text = rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
+          return `${text}%`;
+        }
+
+        function resolvePovertyRate(props) {
+          for (const key of POVERTY_FIELD_KEYS) {
+            const raw = getMetaValue(props, key);
+            const parsed = parsePercent(raw);
+            if (parsed !== null) {
+              return parsed;
+            }
+          }
+          return null;
+        }
+
+        function povertyColor(value) {
+          if (!Number.isFinite(value)) {
+            return "#94a3b8";
+          }
+          const clamped = Math.max(0, Math.min(100, value));
+          const hue = 120 - (120 * (clamped / 100));
+          return `hsl(${hue}, 65%, 45%)`;
+        }
+
+        function campusTypeLabel(props) {
+          if (!props) {
+            return "District campus";
+          }
+          if (props.is_private) {
+            return "Private school";
+          }
+          if (props.charter) {
+            return "Charter school";
+          }
+          return "District campus";
+        }
+
+        function buildTooltipRows(rows) {
+          return rows
+            .map(
+              (row) =>
+                `<span class="tooltip-label">${escapeHtml(row.label)}</span><span>${escapeHtml(
+                  row.value
+                )}</span>`
+            )
+            .join("");
+        }
+
+        function buildDemographicRows(props) {
+          const rows = [];
+          DEMOGRAPHIC_FIELDS.forEach((field) => {
+            const raw = getMetaValue(props, field.key);
+            const formatted = formatPercent(raw);
+            if (formatted !== null) {
+              rows.push({ label: field.label, value: formatted });
+            }
+          });
+          return rows.slice(0, 6);
+        }
+
+        function campusKey(campus) {
+          return campus.campus_number || campus.name || JSON.stringify(campus);
+        }
+
+        function featureKey(feature) {
+          const props = feature.properties || {};
+          if (props.kind === "district") {
+            return `district:${props.district_number || props.name || "boundary"}`;
+          }
+          if (props.campus_number) {
+            return `campus:${props.campus_number}`;
+          }
+          if (props.name) {
+            return `campus:${props.name}`;
+          }
+          if (feature.geometry && feature.geometry.type === "Point") {
+            const coord = feature.geometry.coordinates || [];
+            if (coord.length >= 2) {
+              return `point:${coord[0]},${coord[1]}`;
+            }
+          }
+          if (
+            feature.geometry &&
+            (feature.geometry.type === "Polygon" ||
+              feature.geometry.type === "MultiPolygon")
+          ) {
+            return "district:boundary";
+          }
+          return `feature:${String(feature.id || "")}`;
+        }
+
+        function mergeUnique(existing, incoming, keyFn) {
+          const map = {};
+          existing.forEach((item) => {
+            map[keyFn(item)] = item;
+          });
+          incoming.forEach((item) => {
+            map[keyFn(item)] = item;
+          });
+          return Object.values(map);
+        }
+
+        function normalizePayload(output) {
+          if (!output) {
+            return null;
+          }
+          if (output.payload) {
+            return output.payload;
+          }
+          return output;
+        }
+
+        function deriveSessionId(payload) {
+          const bits = [
+            payload?.district?.name,
+            payload?.filters?.status,
+            payload?.filters?.campus_query,
+            payload?.filters?.response_profile,
+            payload?.filters?.campus_list_format
+          ]
+            .filter(Boolean)
+            .join("|");
+          return bits || "boundary-session";
+        }
+
+        function extractCampuses(payload) {
+          if (!payload) {
+            return [];
+          }
+          if (Array.isArray(payload.campuses)) {
+            return payload.campuses
+              .filter((item) => item !== null && item !== undefined)
+              .map((item) => {
+                if (typeof item === "string") {
+                  return { campus_number: item, name: item };
+                }
+                return item;
+              });
+          }
+          if (payload.geojson && Array.isArray(payload.geojson.features)) {
+            return payload.geojson.features
+              .filter((feature) => feature.geometry && feature.geometry.type === "Point")
+              .map((feature) => {
+                const props = feature.properties || {};
+                return {
+                  campus_number: props.campus_number || "",
+                  name: props.name || "",
+                  district_name: props.district_name || "",
+                  overall_rating_2025: props.overall_rating_2025 || props.rating || null,
+                  charter: Boolean(props.charter),
+                  is_private: Boolean(props.is_private),
+                  meta: props.meta && typeof props.meta === "object" ? props.meta : {}
+                };
+              });
+          }
+          return [];
+        }
+
+        function extractFeatures(payload, campuses) {
+          if (payload && payload.geojson && Array.isArray(payload.geojson.features)) {
+            const features = payload.geojson.features;
+            const districtGeometry = payload.district?.geometry;
+            if (!districtGeometry) {
+              return features;
+            }
+            const hasBoundary = features.some(
+              (feature) => feature.properties && feature.properties.kind === "district"
+            );
+            if (hasBoundary) {
+              return features;
+            }
+            const districtFeature = {
+              type: "Feature",
+              geometry: districtGeometry,
+              properties: {
+                kind: "district",
+                name: payload.district?.name || "",
+                district_number: payload.district?.district_number || ""
+              }
+            };
+            return [districtFeature, ...features];
+          }
+          return (campuses || [])
+            .filter((campus) => campus.location && campus.location.lat && campus.location.lon)
+            .map((campus) => ({
+              type: "Feature",
+              geometry: {
+                type: "Point",
+                coordinates: [campus.location.lon, campus.location.lat]
+              },
+              properties: {
+                name: campus.name,
+                campus_number: campus.campus_number,
+                district_name: campus.district_name,
+                overall_rating_2025: campus.overall_rating_2025 || campus.rating,
+                charter: Boolean(campus.charter),
+                is_private: Boolean(campus.is_private),
+                meta: campus.meta && typeof campus.meta === "object" ? campus.meta : {}
+              }
+            }));
+        }
+
+        function persistState(nextState) {
+          state = nextState;
+          if (window.openai && window.openai.setWidgetState) {
+            window.openai.setWidgetState(state);
+          }
+        }
+
+        function applyToolOutput(toolOutput, meta) {
+          const payload = normalizePayload(toolOutput);
+          if (!payload) {
+            return;
+          }
+          const sessionId =
+            (meta && meta["openai/widgetSessionId"]) || deriveSessionId(payload);
+          let nextState = state.sessionId === sessionId ? { ...state } : { ...DEFAULT_STATE, sessionId };
+
+          const incomingCampuses = extractCampuses(payload);
+          if (incomingCampuses.length) {
+            nextState.campuses = mergeUnique(
+              nextState.campuses || [],
+              incomingCampuses,
+              campusKey
+            );
+          }
+
+          const incomingFeatures = extractFeatures(payload, incomingCampuses);
+          if (incomingFeatures.length) {
+            nextState.features = mergeUnique(
+              nextState.features || [],
+              incomingFeatures,
+              featureKey
+            );
+          }
+
+          nextState.district = payload.district || nextState.district;
+          nextState.filters = payload.filters || nextState.filters;
+          nextState.pagination = payload.pagination || nextState.pagination;
+          nextState.responseTrimmed = payload.response_trimmed || nextState.responseTrimmed;
+          nextState.missingLocation = payload.missing_location_count ?? nextState.missingLocation;
+          nextState.completeness = payload.completeness || nextState.completeness;
+          nextState.table = payload.table || nextState.table;
+          nextState.exports =
+            payload.exports || payload.table?.exports || nextState.exports;
+          nextState.querySummary = payload.query_summary || nextState.querySummary;
+          nextState.lastMessage = toolOutput.message || nextState.lastMessage;
+          nextState.lastStatus = toolOutput.status || nextState.lastStatus;
+          nextState.lastTool = toolOutput.tool || nextState.lastTool;
+          nextState.lastPayload = {
+            next_tool_call: payload.next_tool_call || null,
+            exports: payload.exports || payload.table?.exports || null,
+            table: payload.table ? { exports: payload.table.exports || null } : null
+          };
+          nextState.boundaryReference = payload?.district?.boundary_reference || null;
+
+          persistState(nextState);
+          notifyStateChange();
+        }
+
+        function renderSummary(stateSnapshot) {
+          const summaryItems = [];
+          const districtName = stateSnapshot.district?.name || "Unknown district";
+          const campusCount = stateSnapshot.campuses?.length || 0;
+          const totalMatches = stateSnapshot.pagination?.total_matches;
+
+          summaryItems.push({
+            label: "District",
+            value: districtName
+          });
+
+          summaryItems.push({
+            label: "Campuses",
+            value: totalMatches ? `${campusCount} of ${totalMatches}` : campusCount
+          });
+
+          if (stateSnapshot.filters?.status) {
+            summaryItems.push({
+              label: "Status",
+              value: stateSnapshot.filters.status
+            });
+          }
+
+          if (stateSnapshot.filters?.response_profile) {
+            summaryItems.push({
+              label: "Profile",
+              value: stateSnapshot.filters.response_profile
+            });
+          }
+
+          if (stateSnapshot.missingLocation) {
+            summaryItems.push({
+              label: "Missing Coordinates",
+              value: stateSnapshot.missingLocation
+            });
+          }
+
+          elements.summary.innerHTML = summaryItems
+            .map(
+              (item) =>
+                `<div class="summary-card"><h4>${escapeHtml(
+                  item.label
+                )}</h4><p>${escapeHtml(item.value)}</p></div>`
+            )
+            .join("");
+        }
+
+        function renderBadges(stateSnapshot) {
+          const badges = [];
+          if (stateSnapshot.filters?.campus_query) {
+            badges.push(`Filter: ${stateSnapshot.filters.campus_query}`);
+          }
+          if (stateSnapshot.filters?.campus_list_format) {
+            badges.push(`List: ${stateSnapshot.filters.campus_list_format}`);
+          }
+          if (stateSnapshot.pagination?.has_more) {
+            badges.push("More available");
+          }
+          if (needsFollowUp(stateSnapshot)) {
+            badges.push("Incomplete");
+          }
+          elements.badges.innerHTML = badges
+            .map((text) => `<span class="badge">${escapeHtml(text)}</span>`)
+            .join("");
+        }
+
+        function needsFollowUp(stateSnapshot) {
+          if (stateSnapshot.completeness?.needs_follow_up) {
+            return true;
+          }
+          if (stateSnapshot.pagination?.has_more) {
+            return true;
+          }
+          if (stateSnapshot.responseTrimmed?.applied) {
+            return true;
+          }
+          return false;
+        }
+
+        function renderNotice(stateSnapshot) {
+          const notes = [];
+          if (stateSnapshot.responseTrimmed?.applied) {
+            notes.push("Response trimmed to fit size limits.");
+          }
+          if (stateSnapshot.pagination?.has_more) {
+            notes.push("More campuses are available.");
+          }
+          if (stateSnapshot.completeness?.missing_count) {
+            notes.push(
+              `Skipped ${stateSnapshot.completeness.missing_count} campuses without coordinates.`
+            );
+          }
+          if (!notes.length) {
+            elements.notice.style.display = "none";
+            elements.notice.textContent = "";
+            return;
+          }
+          const prefix = needsFollowUp(stateSnapshot)
+            ? "<strong>Incomplete results.</strong> "
+            : "";
+          elements.notice.style.display = "block";
+          elements.notice.innerHTML = `${prefix}${escapeHtml(notes.join(" "))}`;
+        }
+
+        function renderProgress(stateSnapshot) {
+          const loaded = (stateSnapshot.campuses || []).length;
+          const total = stateSnapshot.pagination?.total_matches;
+          const shouldShow = Boolean(total || needsFollowUp(stateSnapshot));
+          if (!shouldShow) {
+            elements.progress.style.display = "none";
+            return;
+          }
+          elements.progress.style.display = "flex";
+          const label = total
+            ? `Loaded ${loaded} of ${total} campuses`
+            : `Loaded ${loaded} campuses`;
+          elements.progressLabel.textContent = label;
+          const percent = total ? Math.min(100, (loaded / total) * 100) : 100;
+          elements.progressFill.style.width = `${percent}%`;
+          elements.progressFill.style.opacity = total ? "1" : "0.4";
+        }
+
+        function resolveTableColumns(stateSnapshot) {
+          const columns = stateSnapshot.table?.columns;
+          if (Array.isArray(columns) && columns.length) {
+            return columns;
+          }
+          const format = stateSnapshot.filters?.campus_list_format || "full";
+          if (format === "id") {
+            return [{ key: "campus_number", label: "Campus #" }];
+          }
+          if (format === "id_name") {
+            return [
+              { key: "campus_number", label: "Campus #" },
+              { key: "name", label: "Campus" }
+            ];
+          }
+          return [
+            { key: "name", label: "Campus" },
+            { key: "district_name", label: "District" },
+            { key: "campus_number", label: "Campus #" },
+            { key: "overall_rating_2025", label: "2025 Overall Rating" }
+          ];
+        }
+
+        function normalizeCampusRow(campus, stateSnapshot) {
+          if (!campus) {
+            return {};
+          }
+          if (typeof campus === "string") {
+            return {
+              campus_number: campus,
+              name: campus,
+              district_name: stateSnapshot.district?.name || ""
+            };
+          }
+          const meta =
+            campus.meta && typeof campus.meta === "object" ? campus.meta : {};
+          const rating =
+            campus.overall_rating_2025 ||
+            campus.meta?.overall_rating_2025 ||
+            campus.rating ||
+            "";
+          return {
+            ...campus,
+            ...meta,
+            overall_rating_2025: rating,
+            district_name: campus.district_name || stateSnapshot.district?.name || ""
+          };
+        }
+
+        function formatCell(key, value) {
+          if (key === "overall_rating_2025") {
+            const ratingText = ratingLabel(value);
+            const ratingColorValue = ratingColor(ratingText);
+            return `<span class="rating-pill"><i style="background:${ratingColorValue}"></i>${escapeHtml(
+              ratingText
+            )}</span>`;
+          }
+          if (value === null || value === undefined) {
+            return "";
+          }
+          return escapeHtml(value);
+        }
+
+        function renderExports(stateSnapshot) {
+          const exports =
+            stateSnapshot.exports ||
+            stateSnapshot.table?.exports ||
+            stateSnapshot.lastPayload?.exports ||
+            stateSnapshot.lastPayload?.table?.exports;
+          if (!exports) {
+            elements.exports.innerHTML = "";
+            return;
+          }
+          const rows = ["csv", "json"]
+            .map((format) => {
+              const entry = exports[format];
+              if (!entry) {
+                return "";
+              }
+              const label = format.toUpperCase();
+              const rowCount = entry.row_count ? `${entry.row_count} rows` : "Export";
+              const uri = entry.resource_uri || "";
+              return `
+                <div class="export-row">
+                  <div>
+                    <div><strong>${escapeHtml(label)} export</strong> ${escapeHtml(rowCount)}</div>
+                    <div class="export-meta">resource_uri: <span class="inline-code">${escapeHtml(
+                      uri
+                    )}</span></div>
+                  </div>
+                  <div class="export-actions">
+                    <button class="secondary" data-export-action="open" data-export-uri="${escapeHtml(
+                      uri
+                    )}">Open</button>
+                    <button class="secondary" data-export-action="copy" data-export-uri="${escapeHtml(
+                      uri
+                    )}">Copy</button>
+                  </div>
+                </div>
+              `;
+            })
+            .join("");
+          elements.exports.innerHTML = rows;
+        }
+
+        function buildActionArgs(action, row) {
+          const args = {};
+          const mapping = action.args_from_row || {};
+          Object.keys(mapping).forEach((argName) => {
+            const keys = Array.isArray(mapping[argName])
+              ? mapping[argName]
+              : [mapping[argName]];
+            for (const key of keys) {
+              const value = row[key];
+              if (value !== null && value !== undefined && String(value).trim() !== "") {
+                args[argName] = value;
+                break;
+              }
+            }
+          });
+          return args;
+        }
+
+        function handleRowActionClick(event) {
+          const button = event.target.closest("button[data-row-action]");
+          if (!button || !window.openai || !window.openai.callTool) {
+            return;
+          }
+          const actionId = button.getAttribute("data-row-action");
+          const rowIndex = Number(button.getAttribute("data-row-index"));
+          if (!tableSnapshot || Number.isNaN(rowIndex)) {
+            return;
+          }
+          const action = (tableSnapshot.rowActions || []).find(
+            (item) => item.id === actionId
+          );
+          const row = (tableSnapshot.rows || [])[rowIndex];
+          if (!action || !row) {
+            return;
+          }
+          const args = buildActionArgs(action, row);
+          if (!Object.keys(args).length) {
+            return;
+          }
+          window.openai.callTool(action.tool, args);
+        }
+
+        function renderTable(stateSnapshot) {
+          const campuses = stateSnapshot.campuses || [];
+          const columns = resolveTableColumns(stateSnapshot);
+          const rowActions = stateSnapshot.table?.row_actions || [];
+          const rows = campuses.map((campus) => normalizeCampusRow(campus, stateSnapshot));
+          tableSnapshot = { columns, rows, rowActions };
+
+          if (!rows.length || !columns.length) {
+            elements.table.style.display = "none";
+            elements.tableEmpty.style.display = "block";
+            elements.tableBody.innerHTML = "";
+            elements.tableHead.innerHTML = "";
+            return;
+          }
+
+          const headerCells = columns
+            .map((col) => `<th>${escapeHtml(col.label || col.key)}</th>`)
+            .concat(rowActions.length ? "<th>Actions</th>" : []);
+          elements.tableHead.innerHTML = `<tr>${headerCells.join("")}</tr>`;
+
+          const bodyRows = rows
+            .map((row, index) => {
+              const cells = columns.map(
+                (col) => `<td>${formatCell(col.key, row[col.key])}</td>`
+              );
+              if (rowActions.length) {
+                const actionsHtml = rowActions
+                  .map(
+                    (action) =>
+                      `<button class="secondary" data-row-action="${escapeHtml(
+                        action.id
+                      )}" data-row-index="${index}">${escapeHtml(action.label)}</button>`
+                  )
+                  .join(" ");
+                cells.push(`<td><div class="row-actions">${actionsHtml}</div></td>`);
+              }
+              return `<tr>${cells.join("")}</tr>`;
+            })
+            .join("");
+
+          elements.tableBody.innerHTML = bodyRows;
+          elements.table.style.display = "table";
+          elements.tableEmpty.style.display = "none";
+        }
+
+        const MAX_MERCATOR_LAT = 85.05112878;
+        const MERCATOR_RADIUS = 6378137;
+        const WORLD_HALF = Math.PI * MERCATOR_RADIUS;
+        const WORLD_WIDTH = WORLD_HALF * 2;
+        const TILE_CONFIG = {
+          url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+          tileSize: 256,
+          minZoom: 3,
+          maxZoom: 17
+        };
+
+        function scheduleRedraw() {
+          if (redrawPending) {
+            return;
+          }
+          redrawPending = true;
+          requestAnimationFrame(() => {
+            redrawPending = false;
+            if (lastStateSnapshot) {
+              drawMap(lastStateSnapshot);
+            }
+          });
+        }
+
+        function clampLatitude(lat) {
+          if (!Number.isFinite(lat)) {
+            return 0;
+          }
+          return Math.max(Math.min(lat, MAX_MERCATOR_LAT), -MAX_MERCATOR_LAT);
+        }
+
+        function toMercator(coord) {
+          if (!coord || coord.length < 2) {
+            return [0, 0];
+          }
+          const lon = Number(coord[0]);
+          const lat = clampLatitude(Number(coord[1]));
+          const x = (lon * Math.PI / 180) * MERCATOR_RADIUS;
+          const y = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 360))) * MERCATOR_RADIUS;
+          return [x, y];
+        }
+
+        function isLikelyWebMercatorCoord(coord) {
+          if (!coord || coord.length < 2) {
+            return false;
+          }
+          const x = Number(coord[0]);
+          const y = Number(coord[1]);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return false;
+          }
+          return Math.abs(x) > 180 || Math.abs(y) > 90;
+        }
+
+        function findSampleCoord(coords) {
+          if (!Array.isArray(coords)) {
+            return null;
+          }
+          if (typeof coords[0] === "number" && typeof coords[1] === "number") {
+            return [coords[0], coords[1]];
+          }
+          for (const item of coords) {
+            const found = findSampleCoord(item);
+            if (found) {
+              return found;
+            }
+          }
+          return null;
+        }
+
+        function detectCoordSpace(features, districtGeometry) {
+          const districtCoord = findSampleCoord(districtGeometry?.coordinates);
+          if (districtCoord) {
+            return isLikelyWebMercatorCoord(districtCoord) ? "webmercator" : "lonlat";
+          }
+          for (const feature of features || []) {
+            const sample = findSampleCoord(feature?.geometry?.coordinates);
+            if (sample) {
+              return isLikelyWebMercatorCoord(sample) ? "webmercator" : "lonlat";
+            }
+          }
+          return "lonlat";
+        }
+
+        function toProjected(coord, coordSpace) {
+          if (coordSpace === "webmercator") {
+            return [Number(coord[0]), Number(coord[1])];
+          }
+          return toMercator(coord);
+        }
+
+        function updateBounds(stats, coord, coordSpace) {
+          if (!coord || coord.length < 2) {
+            return;
+          }
+          const x = Number(coord[0]);
+          const y = Number(coord[1]);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return;
+          }
+          const projected = toProjected([x, y], coordSpace);
+          stats.minX = Math.min(stats.minX, projected[0]);
+          stats.maxX = Math.max(stats.maxX, projected[0]);
+          stats.minY = Math.min(stats.minY, projected[1]);
+          stats.maxY = Math.max(stats.maxY, projected[1]);
+          stats.found = true;
+        }
+
+        function walkCoordinates(coords, stats, coordSpace) {
+          if (!Array.isArray(coords)) {
+            return;
+          }
+          if (typeof coords[0] === "number" && typeof coords[1] === "number") {
+            updateBounds(stats, coords, coordSpace);
+            return;
+          }
+          coords.forEach((item) => walkCoordinates(item, stats, coordSpace));
+        }
+
+        function resolveBounds(stateSnapshot, coordSpace, features) {
+          const rawBounds = stateSnapshot.district?.geometry_bounds;
+          if (Array.isArray(rawBounds) && rawBounds.length === 4) {
+            const boundIsWebMercator =
+              isLikelyWebMercatorCoord([rawBounds[0], rawBounds[1]]) ||
+              isLikelyWebMercatorCoord([rawBounds[2], rawBounds[3]]);
+            if (coordSpace === "webmercator" || boundIsWebMercator) {
+              return [rawBounds[0], rawBounds[1], rawBounds[2], rawBounds[3]];
+            }
+            const sw = toMercator([rawBounds[0], rawBounds[1]]);
+            const ne = toMercator([rawBounds[2], rawBounds[3]]);
+            return [
+              Math.min(sw[0], ne[0]),
+              Math.min(sw[1], ne[1]),
+              Math.max(sw[0], ne[0]),
+              Math.max(sw[1], ne[1])
+            ];
+          }
+
+          const stats = {
+            minX: Infinity,
+            minY: Infinity,
+            maxX: -Infinity,
+            maxY: -Infinity,
+            found: false
+          };
+          features.forEach((feature) => {
+            if (!feature.geometry) {
+              return;
+            }
+            walkCoordinates(feature.geometry.coordinates, stats, coordSpace);
+          });
+          if (!stats.found) {
+            return null;
+          }
+          return [stats.minX, stats.minY, stats.maxX, stats.maxY];
+        }
+
+        function chooseZoom(spanX, spanY, width, height) {
+          const metersPerPixel = Math.max(spanX / Math.max(width, 1), spanY / Math.max(height, 1));
+          const zoom = Math.log2(WORLD_WIDTH / (TILE_CONFIG.tileSize * metersPerPixel));
+          const clamped = Math.max(TILE_CONFIG.minZoom, Math.min(TILE_CONFIG.maxZoom, Math.floor(zoom)));
+          return Number.isFinite(clamped) ? clamped : TILE_CONFIG.minZoom;
+        }
+
+        function tileUrl(z, x, y) {
+          return TILE_CONFIG.url
+            .replace("{z}", String(z))
+            .replace("{x}", String(x))
+            .replace("{y}", String(y));
+        }
+
+        function getTileImage(z, x, y) {
+          const key = `${z}/${x}/${y}`;
+          if (tileCache.has(key)) {
+            return tileCache.get(key);
+          }
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = scheduleRedraw;
+          img.onerror = () => {
+            tileCache.delete(key);
+          };
+          img.src = tileUrl(z, x, y);
+          tileCache.set(key, img);
+          if (tileCache.size > 256) {
+            tileCache.clear();
+          }
+          return img;
+        }
+
+        function drawBaseMap(ctx, bounds, width, height, projectMercator) {
+          ctx.fillStyle = "#eef2f7";
+          ctx.fillRect(0, 0, width, height);
+
+          const spanX = bounds[2] - bounds[0] || 1;
+          const spanY = bounds[3] - bounds[1] || 1;
+          const zoom = chooseZoom(spanX, spanY, width, height);
+          const scale = 2 ** zoom;
+          const tileWorldSize = WORLD_WIDTH / scale;
+
+          const minTileX = Math.floor((bounds[0] + WORLD_HALF) / tileWorldSize);
+          const maxTileX = Math.floor((bounds[2] + WORLD_HALF) / tileWorldSize);
+          const minTileY = Math.floor((WORLD_HALF - bounds[3]) / tileWorldSize);
+          const maxTileY = Math.floor((WORLD_HALF - bounds[1]) / tileWorldSize);
+
+          for (let x = minTileX; x <= maxTileX; x += 1) {
+            for (let y = minTileY; y <= maxTileY; y += 1) {
+              if (y < 0 || y >= scale) {
+                continue;
+              }
+              const wrappedX = ((x % scale) + scale) % scale;
+              const img = getTileImage(zoom, wrappedX, y);
+              if (!img || !img.complete || img.naturalWidth === 0) {
+                continue;
+              }
+
+              const tileMinX = -WORLD_HALF + x * tileWorldSize;
+              const tileMaxX = tileMinX + tileWorldSize;
+              const tileMaxY = WORLD_HALF - y * tileWorldSize;
+              const tileMinY = tileMaxY - tileWorldSize;
+
+              const topLeft = projectMercator([tileMinX, tileMaxY]);
+              const bottomRight = projectMercator([tileMaxX, tileMinY]);
+              const tileWidth = bottomRight[0] - topLeft[0];
+              const tileHeight = bottomRight[1] - topLeft[1];
+              ctx.drawImage(img, topLeft[0], topLeft[1], tileWidth, tileHeight);
+            }
+          }
+        }
+
+        function drawMap(stateSnapshot) {
+          lastStateSnapshot = stateSnapshot;
+          const canvas = elements.mapCanvas;
+          const ctx = canvas.getContext("2d");
+          const features = stateSnapshot.features || [];
+          if (!features.length) {
+            elements.mapSection.style.display = "none";
+            mapRenderState = null;
+            hideTooltip();
+            return;
+          }
+
+          elements.mapSection.style.display = "flex";
+          const width = canvas.clientWidth;
+          const height = canvas.clientHeight;
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = width * dpr;
+          canvas.height = height * dpr;
+          ctx.scale(dpr, dpr);
+          ctx.clearRect(0, 0, width, height);
+
+          const coordSpace = detectCoordSpace(features, stateSnapshot.district?.geometry);
+          const bounds = resolveBounds(stateSnapshot, coordSpace, features);
+          if (!bounds) {
+            mapRenderState = null;
+            hideTooltip();
+            return;
+          }
+
+          const padding = 20;
+          const [minX, minY, maxX, maxY] = bounds;
+          const spanX = maxX - minX || 1;
+          const spanY = maxY - minY || 1;
+
+          function projectMercator(coord) {
+            const x =
+              ((coord[0] - minX) / spanX) * (width - padding * 2) + padding;
+            const y =
+              height -
+              (((coord[1] - minY) / spanY) * (height - padding * 2) + padding);
+            return [x, y];
+          }
+
+          drawBaseMap(ctx, bounds, width, height, projectMercator);
+
+          features.forEach((feature) => {
+            if (!feature.geometry) {
+              return;
+            }
+            if (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon") {
+              ctx.strokeStyle = "rgba(51, 65, 85, 0.55)";
+              ctx.lineWidth = 1;
+              const drawRing = (ring) => {
+                ctx.beginPath();
+                ring.forEach((coord, idx) => {
+                  const projected = toProjected(coord, coordSpace);
+                  const [x, y] = projectMercator(projected);
+                  if (idx === 0) {
+                    ctx.moveTo(x, y);
+                  } else {
+                    ctx.lineTo(x, y);
+                  }
+                });
+                ctx.closePath();
+                ctx.stroke();
+              };
+              if (feature.geometry.type === "Polygon") {
+                feature.geometry.coordinates.forEach(drawRing);
+              } else {
+                feature.geometry.coordinates.forEach((poly) => poly.forEach(drawRing));
+              }
+            }
+          });
+
+          const markerPoints = [];
+          const pointFeatures = features.filter(
+            (feature) => feature.geometry && feature.geometry.type === "Point"
+          );
+          const orderedPoints = [...pointFeatures].sort((a, b) => {
+            const aCharter = Boolean(a.properties?.charter);
+            const bCharter = Boolean(b.properties?.charter);
+            if (aCharter === bCharter) {
+              return 0;
+            }
+            return aCharter ? 1 : -1;
+          });
+          orderedPoints.forEach((feature) => {
+            const coord = feature.geometry.coordinates;
+            const projected = toProjected(coord, coordSpace);
+            const [x, y] = projectMercator(projected);
+            const props = feature.properties || {};
+            const povertyRate = resolvePovertyRate(props);
+            const isCharter = Boolean(props.charter);
+            const radius = isCharter ? 5 : 4;
+            ctx.fillStyle = povertyColor(povertyRate);
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            if (isCharter) {
+              ctx.strokeStyle = "#0f172a";
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            } else {
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+              ctx.lineWidth = 0.75;
+              ctx.stroke();
+            }
+            markerPoints.push({
+              x,
+              y,
+              feature,
+              hitRadius: isCharter ? 10 : 8
+            });
+          });
+
+          mapRenderState = {
+            markerPoints,
+            width,
+            height
+          };
+        }
+
+        function hideTooltip() {
+          if (!elements.mapTooltip) {
+            return;
+          }
+          elements.mapTooltip.classList.remove("visible");
+        }
+
+        function showTooltip(screenX, screenY, feature) {
+          if (!elements.mapTooltip) {
+            return;
+          }
+          const props = feature.properties || {};
+          const name = props.name || "Campus";
+          const rating = props.overall_rating_2025 || props.rating || "";
+          const typeLabel = campusTypeLabel(props);
+          const povertyRate = resolvePovertyRate(props);
+          const metrics = [];
+          const povertyText = formatPercent(povertyRate);
+          if (povertyText) {
+            metrics.push({ label: "Poverty rate", value: povertyText });
+          }
+          if (rating) {
+            metrics.push({ label: "Rating", value: ratingLabel(rating) });
+          }
+          const demographics = buildDemographicRows(props);
+          const metricsHtml = metrics.length
+            ? `<div class="tooltip-grid">${buildTooltipRows(metrics)}</div>`
+            : "";
+          const demographicsHtml = demographics.length
+            ? `<div class="tooltip-section">Demographics</div><div class="tooltip-grid">${buildTooltipRows(
+                demographics
+              )}</div>`
+            : "";
+          elements.mapTooltip.innerHTML = `
+            <div class="tooltip-title">${escapeHtml(name)}</div>
+            <div class="tooltip-sub">${escapeHtml(typeLabel)}</div>
+            ${metricsHtml}
+            ${demographicsHtml}
+          `;
+
+          const sectionRect = elements.mapSection.getBoundingClientRect();
+          const canvasRect = elements.mapCanvas.getBoundingClientRect();
+          const offsetX = canvasRect.left - sectionRect.left;
+          const offsetY = canvasRect.top - sectionRect.top;
+          elements.mapTooltip.style.left = `${offsetX + screenX}px`;
+          elements.mapTooltip.style.top = `${offsetY + screenY}px`;
+          elements.mapTooltip.classList.add("visible");
+        }
+
+        function findNearestMarker(screenX, screenY) {
+          if (!mapRenderState || !mapRenderState.markerPoints) {
+            return null;
+          }
+          let best = null;
+          let bestDistance = Infinity;
+          mapRenderState.markerPoints.forEach((point) => {
+            const dx = point.x - screenX;
+            const dy = point.y - screenY;
+            const dist = dx * dx + dy * dy;
+            const hitRadius = point.hitRadius || 8;
+            const hitDistance = hitRadius * hitRadius;
+            if (dist <= hitDistance && dist < bestDistance) {
+              bestDistance = dist;
+              best = point;
+            }
+          });
+          return best;
+        }
+
+        let hoverPending = false;
+        let lastHover = null;
+
+        function handleMapHover(event) {
+          if (!elements.mapCanvas || !mapRenderState) {
+            return;
+          }
+          lastHover = { x: event.clientX, y: event.clientY };
+          if (hoverPending) {
+            return;
+          }
+          hoverPending = true;
+          requestAnimationFrame(() => {
+            hoverPending = false;
+            if (!lastHover) {
+              return;
+            }
+            const rect = elements.mapCanvas.getBoundingClientRect();
+            const x = lastHover.x - rect.left;
+            const y = lastHover.y - rect.top;
+            const hit = findNearestMarker(x, y);
+            if (hit) {
+              showTooltip(x, y, hit.feature);
+              elements.mapCanvas.style.cursor = "pointer";
+            } else {
+              hideTooltip();
+              elements.mapCanvas.style.cursor = "default";
+            }
+          });
+        }
+
+        function handleMapClick(event) {
+          if (!mapRenderState) {
+            return;
+          }
+          const rect = elements.mapCanvas.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          const hit = findNearestMarker(x, y);
+          if (hit) {
+            const props = hit.feature.properties || {};
+            const povertyText = formatPercent(resolvePovertyRate(props));
+            const rating = props.overall_rating_2025 || props.rating || "";
+            const parts = [
+              `Selected ${props.name || "campus"}`,
+              campusTypeLabel(props)
+            ];
+            if (povertyText) {
+              parts.push(`Poverty ${povertyText}`);
+            } else if (rating) {
+              parts.push(`Rating ${ratingLabel(rating)}`);
+            }
+            elements.loadStatus.textContent = parts.join(" • ");
+          }
+        }
+
+        function renderLegend() {
+          elements.legend.innerHTML = `
+            <div class="legend-block">
+              <div class="legend-title">Poverty rate</div>
+              <div class="legend-gradient"></div>
+              <div class="legend-scale">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+              </div>
+            </div>
+            <div class="legend-block">
+              <div class="legend-title">School type</div>
+              <div class="legend-markers">
+                <span><i class="legend-marker"></i>District</span>
+                <span><i class="legend-marker charter"></i>Charter</span>
+              </div>
+            </div>
+          `;
+        }
+
+        function renderFooter(stateSnapshot) {
+          const notes = [];
+          if (stateSnapshot.completeness?.needs_follow_up) {
+            notes.push("Incomplete results. Follow next_tool_call or use Load all.");
+          }
+          if (stateSnapshot.responseTrimmed?.applied) {
+            notes.push("Response trimmed to fit size limits. Use Load more to continue.");
+          }
+          if (stateSnapshot.pagination?.has_more) {
+            notes.push(
+              `More campuses available. Next cursor: ${stateSnapshot.pagination.next_cursor}`
+            );
+          }
+          if (!notes.length) {
+            notes.push("Up to date with the latest boundary response.");
+          }
+          elements.footer.textContent = notes.join(" ");
+        }
+
+        function renderDebug(stateSnapshot) {
+          if (!elements.debugPanel) {
+            return;
+          }
+          if (!showDebug) {
+            elements.debugPanel.classList.remove("visible");
+            return;
+          }
+          const campusesCount = (stateSnapshot.campuses || []).length;
+          const featuresCount = (stateSnapshot.features || []).length;
+          const cursor = stateSnapshot.pagination?.cursor ?? 0;
+          const nextCursor = stateSnapshot.pagination?.next_cursor ?? null;
+          const trimmed = Boolean(stateSnapshot.responseTrimmed?.applied);
+          const hasMore = Boolean(stateSnapshot.pagination?.has_more);
+          const missing = stateSnapshot.missingLocation ?? stateSnapshot.missing_location_count ?? 0;
+          const lines = [
+            `lastTool: ${stateSnapshot.lastTool || ""}`,
+            `lastStatus: ${stateSnapshot.lastStatus || ""}`,
+            `campuses: ${campusesCount}`,
+            `features: ${featuresCount}`,
+            `cursor: ${cursor}`,
+            `next_cursor: ${nextCursor === null ? "" : nextCursor}`,
+            `has_more: ${hasMore}`,
+            `trimmed: ${trimmed}`,
+            `missing_location: ${missing}`,
+            `render_total_ms: ${lastRenderTiming.total_ms.toFixed(1)}`,
+            `render_table_ms: ${lastRenderTiming.table_ms.toFixed(1)}`,
+            `render_map_ms: ${lastRenderTiming.map_ms.toFixed(1)}`
+          ];
+          elements.debugPanel.textContent = lines.join("\n");
+          elements.debugPanel.classList.add("visible");
+        }
+
+        function render() {
+          const renderStart = performance.now();
+          elements.subtitle.textContent =
+            state.lastMessage || "Run a boundary tool to render results.";
+          renderBadges(state);
+          renderSummary(state);
+          renderNotice(state);
+          renderProgress(state);
+          renderExports(state);
+          const tableStart = performance.now();
+          renderTable(state);
+          lastRenderTiming.table_ms = performance.now() - tableStart;
+          const mapStart = performance.now();
+          drawMap(state);
+          lastRenderTiming.map_ms = performance.now() - mapStart;
+          renderLegend();
+          renderFooter(state);
+          lastRenderTiming.total_ms = performance.now() - renderStart;
+          renderDebug(state);
+
+          const nextCall = state.lastPayload?.next_tool_call;
+          const canLoad = nextCall && window.openai && window.openai.callTool;
+          elements.loadMore.disabled = !canLoad || isLoadingMore || isLoadingAll;
+          elements.loadAll.disabled = !canLoad || !window.openai?.callTool;
+          elements.loadAll.textContent = isLoadingAll ? "Stop loading" : "Load all";
+          const boundaryUrl = state.boundaryReference?.download_url;
+          elements.openBoundary.disabled = !boundaryUrl || !window.openai?.openExternal;
+          elements.loadStatus.textContent = isLoadingMore
+            ? "Loading..."
+            : isLoadingAll
+            ? "Loading all pages..."
+            : canLoad
+            ? "More results available."
+            : "";
+        }
+
+        async function handleLoadMore() {
+          const nextCall = state.lastPayload?.next_tool_call;
+          if (!nextCall || !window.openai || !window.openai.callTool) {
+            return;
+          }
+          if (isLoadingMore || isLoadingAll) {
+            return;
+          }
+          try {
+            isLoadingMore = true;
+            render();
+            await window.openai.callTool(nextCall.tool, nextCall.arguments);
+          } catch (err) {
+            elements.loadStatus.textContent =
+              err && err.message ? err.message : "Failed to load more results.";
+          } finally {
+            isLoadingMore = false;
+            render();
+          }
+        }
+
+        async function handleLoadAll() {
+          if (!window.openai || !window.openai.callTool) {
+            return;
+          }
+          if (isLoadingAll) {
+            isLoadingAll = false;
+            render();
+            return;
+          }
+          const nextCall = state.lastPayload?.next_tool_call;
+          if (!nextCall) {
+            return;
+          }
+          isLoadingAll = true;
+          render();
+          let safety = 0;
+          while (isLoadingAll) {
+            const call = state.lastPayload?.next_tool_call;
+            if (!call) {
+              break;
+            }
+            const previousToken = progressToken();
+            try {
+              await window.openai.callTool(call.tool, call.arguments);
+            } catch (err) {
+              elements.loadStatus.textContent =
+                err && err.message ? err.message : "Failed to load additional pages.";
+              break;
+            }
+            const progressed = await waitForProgressChange(previousToken, 12000);
+            if (!progressed) {
+              break;
+            }
+            if (!state.pagination?.has_more) {
+              break;
+            }
+            safety += 1;
+            if (safety > 50) {
+              break;
+            }
+          }
+          isLoadingAll = false;
+          render();
+        }
+
+        async function handleFullscreen() {
+          if (window.openai?.requestDisplayMode) {
+            try {
+              await window.openai.requestDisplayMode({ mode: "fullscreen" });
+              return;
+            } catch (err) {
+              // fall through to browser fullscreen
+            }
+          }
+          const target = elements.mapSection || document.documentElement;
+          if (target && target.requestFullscreen) {
+            try {
+              await target.requestFullscreen();
+            } catch (err) {
+              elements.loadStatus.textContent = "Fullscreen failed to start.";
+            }
+            return;
+          }
+          elements.loadStatus.textContent = "Fullscreen not supported.";
+        }
+
+        function handleOpenBoundary() {
+          const boundaryUrl = state.boundaryReference?.download_url;
+          if (!boundaryUrl || !window.openai?.openExternal) {
+            return;
+          }
+          window.openai.openExternal({ href: boundaryUrl });
+        }
+
+        async function copyToClipboard(value) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(value);
+              elements.loadStatus.textContent = "Copied export URI.";
+              return;
+            } catch (err) {
+              // fall through
+            }
+          }
+          window.prompt("Copy export URI:", value);
+        }
+
+        function handleExportClick(event) {
+          const button = event.target.closest("button[data-export-action]");
+          if (!button) {
+            return;
+          }
+          const action = button.getAttribute("data-export-action");
+          const uri = button.getAttribute("data-export-uri");
+          if (!uri) {
+            return;
+          }
+          if (action === "open") {
+            if (window.openai?.openExternal) {
+              window.openai.openExternal({ href: uri });
+            } else {
+              copyToClipboard(uri);
+            }
+          } else if (action === "copy") {
+            copyToClipboard(uri);
+          }
+        }
+
+        function syncFromGlobals() {
+          const toolOutput = window.openai ? window.openai.toolOutput : null;
+          const meta = window.openai ? window.openai.toolResponseMetadata : null;
+          if (toolOutput) {
+            applyToolOutput(toolOutput, meta);
+          }
+          render();
+        }
+
+        function handleToggleDebug() {
+          showDebug = !showDebug;
+          elements.toggleDebug.textContent = showDebug ? "Hide debug" : "Debug";
+          render();
+        }
+
+        elements.loadMore.addEventListener("click", handleLoadMore);
+        elements.loadAll.addEventListener("click", handleLoadAll);
+        elements.fullscreen.addEventListener("click", handleFullscreen);
+        elements.openBoundary.addEventListener("click", handleOpenBoundary);
+        elements.toggleDebug.addEventListener("click", handleToggleDebug);
+        elements.exports.addEventListener("click", handleExportClick);
+        elements.tableBody.addEventListener("click", handleRowActionClick);
+        elements.mapCanvas.addEventListener("mousemove", handleMapHover, { passive: true });
+        elements.mapCanvas.addEventListener("mouseleave", hideTooltip);
+        elements.mapCanvas.addEventListener("click", handleMapClick);
+
+        if (window.addEventListener) {
+          window.addEventListener("openai:set_globals", syncFromGlobals);
+        }
+
+        syncFromGlobals();
+      })();
+    </script>
+  </body>
+</html>

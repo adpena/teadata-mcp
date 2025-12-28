@@ -7,10 +7,16 @@ unit test without touching the real dataset.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import inspect
+import logging
+import threading
+import time
 from typing import Any, Optional
 
 from .config import ServerConfig
+
+logger = logging.getLogger(__name__)
 
 
 class DataEngineLoadError(RuntimeError):
@@ -32,6 +38,7 @@ class DataEngineProvider:
     config: ServerConfig
     _engine: Optional[Any] = None
     _load_error: Optional[Exception] = None
+    _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
     def ensure_loaded(self) -> Any:
         """Return a fully initialised :class:`teadata.DataEngine` instance.
@@ -53,14 +60,50 @@ class DataEngineProvider:
         if self._load_error is not None:
             raise DataEngineLoadError("Data engine failed to load") from self._load_error
 
-        try:
-            engine = self._build_engine()
-        except Exception as exc:  # pragma: no cover - defensive logging branch
-            self._load_error = exc
-            raise DataEngineLoadError("Unable to initialise the TEA Data engine") from exc
+        with self._lock:
+            if self._engine is not None:
+                return self._engine
+            if self._load_error is not None:
+                raise DataEngineLoadError("Data engine failed to load") from self._load_error
 
-        self._engine = engine
-        return engine
+            started = time.perf_counter()
+            snapshot_path = None
+            try:
+                resolved = self.config.resolve_snapshot_path()
+                snapshot_path = str(resolved) if resolved is not None else None
+            except Exception:
+                snapshot_path = None
+
+            try:
+                engine = self._build_engine()
+            except Exception as exc:  # pragma: no cover - defensive logging branch
+                self._load_error = exc
+                logger.exception(
+                    "Data engine failed to initialise",
+                    extra={
+                        "snapshot_path": snapshot_path,
+                        "load_snapshot": self.config.load_snapshot,
+                        "snapshot_search": self.config.snapshot_search,
+                        "engine_eager_indexing": self.config.engine_eager_indexing,
+                        "engine_tuning": self.config.engine_tuning,
+                    },
+                )
+                raise DataEngineLoadError("Unable to initialise the TEA Data engine") from exc
+
+            duration_ms = (time.perf_counter() - started) * 1000
+            self._engine = engine
+            logger.info(
+                "Data engine initialised",
+                extra={
+                    "ms": round(duration_ms, 1),
+                    "snapshot_path": snapshot_path,
+                    "load_snapshot": self.config.load_snapshot,
+                    "snapshot_search": self.config.snapshot_search,
+                    "engine_eager_indexing": self.config.engine_eager_indexing,
+                    "engine_tuning": self.config.engine_tuning,
+                },
+            )
+            return engine
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -69,19 +112,113 @@ class DataEngineProvider:
         """Create a :class:`teadata.DataEngine` using the configured strategy."""
 
         if self.config.engine_factory is not None:
-            return self.config.engine_factory()
+            engine = self.config.engine_factory()
+            return self._tune_engine(engine)
 
         try:
             from teadata import DataEngine  # type: ignore
         except ImportError as exc:  # pragma: no cover - exercised in manual runs
             raise DataEngineLoadError(
-                "teadata is not installed. Install the library or provide "
-                "ServerConfig.engine_factory."
+                "teadata is not installed. Run `uv sync` to install dependencies."
             ) from exc
 
         snapshot_path = self.config.resolve_snapshot_path()
         if snapshot_path is not None:
-            return DataEngine(snapshot=str(snapshot_path))
+            engine = DataEngine(snapshot=str(snapshot_path), **self._init_kwargs(DataEngine))
+            return self._tune_engine(engine)
         if self.config.load_snapshot:
-            return DataEngine.from_snapshot(search=self.config.snapshot_search)
-        return DataEngine()
+            engine = DataEngine.from_snapshot(
+                search=self.config.snapshot_search,
+                **self._snapshot_kwargs(DataEngine),
+            )
+            return self._tune_engine(engine)
+        engine = DataEngine(**self._init_kwargs(DataEngine))
+        return self._tune_engine(engine)
+
+    def _init_kwargs(self, engine_type: Any) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {}
+        if self.config.engine_eager_indexing:
+            eager_kwarg = self._first_supported_kwarg(
+                engine_type,
+                ("eager_indexing", "eager_index", "eager"),
+            )
+            if eager_kwarg:
+                kwargs[eager_kwarg] = True
+        return kwargs
+
+    def _snapshot_kwargs(self, engine_type: Any) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {}
+        if self.config.engine_eager_indexing:
+            eager_kwarg = self._first_supported_kwarg(
+                getattr(engine_type, "from_snapshot", engine_type),
+                ("eager_indexing", "eager_index", "eager"),
+            )
+            if eager_kwarg:
+                kwargs[eager_kwarg] = True
+        return kwargs
+
+    @staticmethod
+    def _first_supported_kwarg(callable_obj: Any, names: tuple[str, ...]) -> Optional[str]:
+        for name in names:
+            if DataEngineProvider._supports_kwarg(callable_obj, name):
+                return name
+        return None
+
+    @staticmethod
+    def _supports_kwarg(callable_obj: Any, name: str) -> bool:
+        try:
+            sig = inspect.signature(callable_obj)
+        except (TypeError, ValueError):
+            return False
+        for param in sig.parameters.values():
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                return True
+        return name in sig.parameters
+
+    @staticmethod
+    def _callable_accepts_no_args(callable_obj: Any) -> bool:
+        try:
+            sig = inspect.signature(callable_obj)
+        except (TypeError, ValueError):
+            return False
+        for param in sig.parameters.values():
+            if param.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            ) and param.default is inspect._empty:
+                return False
+        return True
+
+    def _tune_engine(self, engine: Any) -> Any:
+        if not engine:
+            return engine
+
+        if self.config.engine_eager_indexing and hasattr(engine, "eager_indexing"):
+            attr = getattr(engine, "eager_indexing", None)
+            if callable(attr):
+                if self._callable_accepts_no_args(attr):
+                    try:
+                        attr()
+                    except Exception:
+                        pass
+            else:
+                try:
+                    setattr(engine, "eager_indexing", True)
+                except Exception:
+                    pass
+
+        if not self.config.engine_tuning:
+            return engine
+
+        for method_name in self.config.engine_tuning_methods:
+            method = getattr(engine, method_name, None)
+            if not callable(method):
+                continue
+            if not self._callable_accepts_no_args(method):
+                continue
+            try:
+                method()
+            except Exception:
+                continue
+
+        return engine

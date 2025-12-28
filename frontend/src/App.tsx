@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { CampusDetail, DistrictSummary } from './types';
 import { Button } from '@openai/apps-sdk-ui/components/Button';
-import { ArrowLeft, SearchX, Loader2 } from 'lucide-react';
+import { ArrowLeft, SearchX, Loader2, BarChart3 } from 'lucide-react';
 import { ErrorBanner } from './components/ErrorBanner';
 import { ResultSkeleton, DetailSkeleton } from './components/Skeleton';
 import { CompareProvider, useCompare } from './context/CompareContext';
@@ -15,6 +15,7 @@ const SearchTool = lazy(() => import('./SearchTool').then(module => ({ default: 
 const CampusView = lazy(() => import('./CampusView').then(module => ({ default: module.CampusView })));
 const DistrictView = lazy(() => import('./DistrictView').then(module => ({ default: module.DistrictView })));
 const CompareView = lazy(() => import('./CompareView').then(module => ({ default: module.CompareView })));
+const StaffingDashboard = lazy(() => import('./StaffingDashboard').then(module => ({ default: module.StaffingDashboard })));
 
 type ViewState = 
   | { type: 'home' }
@@ -22,6 +23,7 @@ type ViewState =
   | { type: 'campus_detail'; data: CampusDetail }
   | { type: 'district_detail'; data: DistrictSummary }
   | { type: 'compare_view'; ids: string[] }
+  | { type: 'staffing_dashboard' }
   | { type: 'loading_detail' };
 
 function AppContent() {
@@ -110,11 +112,17 @@ function AppContent() {
     }
 
     if (view.type === 'home') {
-       return (
+         return (
          <Suspense fallback={<ResultSkeleton />}>
              <div className="max-w-2xl mx-auto mt-10">
                <h1 className="text-3xl font-bold text-center mb-8">Texas Education Data</h1>
                <SearchTool onSearch={handleSearch} isLoading={loading} />
+               <div className="mt-6 flex justify-center">
+                 <Button variant="primary" onClick={() => setView({ type: 'staffing_dashboard' })}>
+                   <BarChart3 className="w-4 h-4 mr-2" />
+                   Staffing Analysis Dashboard
+                 </Button>
+               </div>
                <div className="mt-8">
                   {loading && <ResultSkeleton />}
                </div>
@@ -127,6 +135,14 @@ function AppContent() {
         return (
             <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>}>
                 <CompareView ids={view.ids} />
+            </Suspense>
+        );
+    }
+
+    if (view.type === 'staffing_dashboard') {
+        return (
+            <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>}>
+                <StaffingDashboard />
             </Suspense>
         );
     }

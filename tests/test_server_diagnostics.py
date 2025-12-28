@@ -14,14 +14,14 @@ def test_diagnose_environment_reports_missing_dependency(monkeypatch, capsys):
 
     captured = capsys.readouterr().out
     assert not ok
-    assert "Could not locate 'modelcontextprotocol'" in captured
+    assert "Could not locate 'mcp'" in captured
 
 
 def test_diagnose_environment_reports_success(monkeypatch, capsys):
     def fake_find_spec(name: str):
-        if name == "modelcontextprotocol":
-            return SimpleNamespace(origin="/tmp/modelcontextprotocol/__init__.py", loader=None)
-        if name == "modelcontextprotocol.adapters.stdio":
+        if name == "mcp":
+            return SimpleNamespace(origin="/tmp/mcp/__init__.py", loader=None)
+        if name == "mcp.server.stdio":
             return SimpleNamespace(origin="/tmp/stdio.py", loader=None)
         raise AssertionError(f"Unexpected module lookup: {name}")
 
@@ -32,8 +32,8 @@ def test_diagnose_environment_reports_success(monkeypatch, capsys):
 
     captured = capsys.readouterr().out
     assert ok
-    assert "Found 'modelcontextprotocol' (version 1.0.0)" in captured
-    assert "Found 'modelcontextprotocol.adapters.stdio'" in captured
+    assert "Found 'mcp' (version 1.0.0)" in captured
+    assert "Found 'mcp.server.stdio'" in captured
 
 
 def test_diagnose_environment_checks_snapshot(monkeypatch, capsys, tmp_path):

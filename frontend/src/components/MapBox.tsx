@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, Suspense } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap, Polyline, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
@@ -66,7 +66,7 @@ interface MapBoxProps {
         title: string;
         description?: string;
         rating?: string | number;
-        color?: string; // Future: support custom colored icons
+        color?: string;
     }>;
     bounds?: [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
     boundary?: any; // GeoJSON object
@@ -74,6 +74,14 @@ interface MapBoxProps {
     scrollWheelZoom?: boolean;
     renderer?: 'leaflet' | 'webgl';
     clusterMarkers?: boolean;
+    lines?: Array<{
+        id?: string;
+        from: { lat: number; lon: number; title?: string };
+        to: { lat: number; lon: number; title?: string };
+        count?: number;
+        color?: string;
+        label?: string;
+    }>;
 }
 
 // Component to auto-fit bounds if boundary is present
@@ -174,6 +182,68 @@ function ClusteredMarkers({
     return null;
 }
 
+function buildArrowIcon(angle: number, color: string) {
+    const size = 6;
+    const html = `<div style="width:0;height:0;border-left:${size}px solid transparent;border-right:${size}px solid transparent;border-top:${size * 2}px solid ${color};transform: rotate(${angle}deg);"></div>`;
+    return L.divIcon({
+        html,
+        className: 'transfer-arrow-icon',
+        iconSize: [size * 2, size * 2],
+        iconAnchor: [size, size]
+    });
+}
+
+function FlowLines({
+    lines
+}: {
+    lines: Array<{
+        id?: string;
+        from: { lat: number; lon: number; title?: string };
+        to: { lat: number; lon: number; title?: string };
+        count?: number;
+        color?: string;
+        label?: string;
+    }>;
+}) {
+    return (
+        <>
+            {lines.map((line, index) => {
+                const weight = line.count ? Math.min(8, 1 + Math.log(line.count + 1)) : 2;
+                const color = line.color || '#2563eb';
+                const latDiff = line.to.lat - line.from.lat;
+                const lonDiff = line.to.lon - line.from.lon;
+                const angle = (Math.atan2(latDiff, lonDiff) * 180) / Math.PI + 90;
+                const arrowLat = line.from.lat + latDiff * 0.85;
+                const arrowLon = line.from.lon + lonDiff * 0.85;
+                const key = line.id || `${line.from.lat}-${line.from.lon}-${line.to.lat}-${line.to.lon}-${index}`;
+
+                return (
+                    <React.Fragment key={key}>
+                        <Polyline
+                            positions={[
+                                [line.from.lat, line.from.lon],
+                                [line.to.lat, line.to.lon]
+                            ]}
+                            pathOptions={{
+                                color,
+                                weight,
+                                opacity: 0.7
+                            }}
+                        >
+                            {line.label && <Popup>{line.label}</Popup>}
+                        </Polyline>
+                        <Marker
+                            position={[arrowLat, arrowLon]}
+                            icon={buildArrowIcon(angle, color)}
+                            interactive={false}
+                        />
+                    </React.Fragment>
+                );
+            })}
+        </>
+    );
+}
+
 export function MapBox({ 
     center, 
     zoom = 13, 
@@ -183,7 +253,8 @@ export function MapBox({
     className = "h-[300px] w-full rounded-lg shadow-sm border border-gray-200",
     scrollWheelZoom = false,
     renderer,
-    clusterMarkers = true
+    clusterMarkers = true,
+    lines = []
 }: MapBoxProps) {
     const normalizedCenter = useMemo(() => {
         const [lat, lon] = center;
@@ -209,6 +280,21 @@ export function MapBox({
     }, [markers]);
 
     const normalizedBoundary = useMemo(() => normalizeGeoJSON(boundary), [boundary]);
+    const normalizedLines = useMemo(() => {
+        return lines.map((line) => {
+            const from = isLikelyWebMercator(line.from.lon, line.from.lat)
+                ? unprojectWebMercator(line.from.lon, line.from.lat)
+                : { lat: line.from.lat, lon: line.from.lon };
+            const to = isLikelyWebMercator(line.to.lon, line.to.lat)
+                ? unprojectWebMercator(line.to.lon, line.to.lat)
+                : { lat: line.to.lat, lon: line.to.lon };
+            return {
+                ...line,
+                from: { ...line.from, lat: from.lat, lon: from.lon },
+                to: { ...line.to, lat: to.lat, lon: to.lon }
+            };
+        });
+    }, [lines]);
 
     const normalizedBounds = useMemo(() => {
         if (!bounds || bounds.length !== 4) {
@@ -246,6 +332,7 @@ export function MapBox({
                     bounds={normalizedBounds}
                     className={className}
                     scrollWheelZoom={scrollWheelZoom}
+                    lines={normalizedLines}
                 />
             </Suspense>
         );
@@ -262,20 +349,41 @@ export function MapBox({
             <TileLayer
                 attribution={BASE_TILE_ATTRIBUTION}
                 url={BASE_TILE_URL}
+                detectRetina={true}
             />
             
             {shouldCluster ? (
                 <ClusteredMarkers markers={normalizedMarkers} />
             ) : (
                 normalizedMarkers.map((marker, idx) => (
-                    <Marker key={idx} position={[marker.lat, marker.lon]}>
-                        <Popup>
-                            <div className="font-semibold">{marker.title}</div>
-                            {marker.description && <div className="text-sm">{marker.description}</div>}
-                        </Popup>
-                    </Marker>
+                    marker.color ? (
+                        <CircleMarker
+                            key={idx}
+                            center={[marker.lat, marker.lon]}
+                            radius={6}
+                            pathOptions={{
+                                color: marker.color,
+                                fillColor: marker.color,
+                                fillOpacity: 0.7
+                            }}
+                        >
+                            <Popup>
+                                <div className="font-semibold">{marker.title}</div>
+                                {marker.description && <div className="text-sm">{marker.description}</div>}
+                            </Popup>
+                        </CircleMarker>
+                    ) : (
+                        <Marker key={idx} position={[marker.lat, marker.lon]}>
+                            <Popup>
+                                <div className="font-semibold">{marker.title}</div>
+                                {marker.description && <div className="text-sm">{marker.description}</div>}
+                            </Popup>
+                        </Marker>
+                    )
                 ))
             )}
+
+            {normalizedLines.length > 0 && <FlowLines lines={normalizedLines} />}
 
             {normalizedBoundary && (
                 <GeoJSON 

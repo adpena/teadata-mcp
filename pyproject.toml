@@ -1,24 +1,38 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "teadata-mcp"
 version = "0.0.1"
-description = "Model Context Protocol server scaffolding for the TEA Data Engine"
+description = "Texas Education Data Explorer: A Model Context Protocol server for public school data."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
+authors = [
+    { name = "Alejandro Peña", email = "adpena@gmail.com" }
+]
 dependencies = [
-    "modelcontextprotocol",
+    "modelcontextprotocol>=1.0.1",
+    "slowapi>=0.1.9",
+    "sse-starlette>=3.0.4",
+    "starlette>=0.50.0",
+    "teadata",
+    "uvicorn>=0.40.0",
 ]
 
-[project.optional-dependencies]
+[project.scripts]
+teadata-mcp = "teadata_mcp.server:run"
+
+[build-system]
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
 dev = [
-    "pytest>=7.0",
+    "pytest>=9.0.2",
 ]
+
+[tool.uv.sources]
+teadata = { git = "https://github.com/adpena/teadata.git" }
 
 [tool.pytest.ini_options]
 pythonpath = [
     "src",
-    "knowledge/teadata",
 ]
+testpaths = ["tests"]

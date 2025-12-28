@@ -102,21 +102,27 @@ export function normalizeRating(value?: string | number) {
     return value;
 }
 
-export function buildPointFeatureCollection(markers: Array<{ lat: number; lon: number; title: string; description?: string; rating?: string | number; }>) {
+export function buildPointFeatureCollection(markers: Array<{ lat: number; lon: number; title: string; description?: string; rating?: string | number; color?: string; }>) {
     return {
         type: 'FeatureCollection',
-        features: markers.map((marker) => ({
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: [marker.lon, marker.lat]
-            },
-            properties: {
+        features: markers.map((marker) => {
+            const properties: Record<string, any> = {
                 title: marker.title,
                 description: marker.description || '',
                 rating: normalizeRating(marker.rating)
+            };
+            if (marker.color) {
+                properties.color = marker.color;
             }
-        }))
+            return {
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [marker.lon, marker.lat]
+                },
+                properties
+            };
+        })
     };
 }
 
@@ -143,4 +149,37 @@ export function buildBoundaryFeatureCollection(boundary: any) {
         };
     }
     return { type: 'FeatureCollection', features: [] };
+}
+
+export function buildLineFeatureCollection(
+    lines: Array<{
+        from: { lat: number; lon: number };
+        to: { lat: number; lon: number };
+        count?: number;
+        color?: string;
+        label?: string;
+    }>
+) {
+    if (!lines || lines.length === 0) {
+        return { type: 'FeatureCollection', features: [] };
+    }
+    return {
+        type: 'FeatureCollection',
+        features: lines.map((line, index) => ({
+            type: 'Feature',
+            geometry: {
+                type: 'LineString',
+                coordinates: [
+                    [line.from.lon, line.from.lat],
+                    [line.to.lon, line.to.lat]
+                ]
+            },
+            properties: {
+                id: index,
+                count: line.count || 0,
+                color: line.color || '',
+                label: line.label || ''
+            }
+        }))
+    };
 }

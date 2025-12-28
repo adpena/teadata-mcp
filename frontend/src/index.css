@@ -10,3 +10,21 @@
     print-color-adjust: exact !important;
   }
 }
+
+/* Fix for Leaflet + Tailwind Preflight conflict */
+.leaflet-container img.leaflet-tile {
+    max-width: none !important;
+    max-height: none !important;
+    width: auto;
+    height: auto;
+}
+
+.leaflet-container img.leaflet-marker-icon {
+    max-width: none !important;
+    max-height: none !important;
+}
+
+.transfer-arrow-icon {
+    background: transparent !important;
+    border: none !important;
+}

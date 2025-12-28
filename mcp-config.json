@@ -1,0 +1,15 @@
+{
+    "mcpServers": {
+        "teadata-mcp": {
+            "command": "uv",
+            "args": [
+                "run",
+                "--directory",
+                "/Users/adpena/PycharmProjects/teadata-mcp",
+                "python",
+                "-m",
+                "teadata_mcp"
+            ]
+        }
+    }
+}

@@ -46,7 +46,7 @@ describe('App', () => {
     fireEvent.click(searchButton);
 
     await waitFor(() => {
-        expect(api.searchCampuses).toHaveBeenCalledWith('Test', 'all');
+        expect(api.searchCampuses).toHaveBeenCalledWith('Test', 'all', 'all', 'all');
         expect(screen.getByText('Test School')).toBeInTheDocument();
     });
   });

@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: teadata-assistant
+    runtime: docker
+    region: ohio
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      # NOTE: This secret must match TEADATA_ASSISTANT_SSO_SECRET on teadata-app.
+      # If you generate it here, copy the resulting value into teadata-app.
+      - key: TEADATA_ASSISTANT_SSO_SECRET
+        generateValue: true
+      - key: TEADATA_ASSISTANT_LAUNCH_URL
+        value: https://dataforpubliceducation.com/assistant/launch/
+      - key: TEADATA_ASSISTANT_COOKIE_NAME
+        value: teadata_assistant_sso
+      - key: TEADATA_ASSISTANT_ENFORCE_SSO
+        value: "1"
+      - key: TEADATA_ASSISTANT_SSO_SKEW_SECONDS
+        value: "60"
+      - key: TEADATA_DEBUG
+        value: "0"
+
+  # Public instance intended for ChatGPT (no portal login required).
+  - type: web
+    name: teadata-mcp-public
+    runtime: docker
+    region: ohio
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: TEADATA_ASSISTANT_ENFORCE_SSO
+        value: "0"
+      - key: TEADATA_DEBUG
+        value: "0"

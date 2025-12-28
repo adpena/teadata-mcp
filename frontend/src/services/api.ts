@@ -156,6 +156,39 @@ export const api = {
           radius_miles: 5
       });
   },
+  getTransferInsights: async (options?: {
+    districtIdentifier?: string;
+    campusQuery?: string;
+    topSources?: number;
+    topDestinations?: number;
+    minTransferCount?: number;
+    neighborhoodRadiusMiles?: number;
+  }) => {
+    const args: any = {};
+    if (options?.districtIdentifier) {
+      args.district_identifier = options.districtIdentifier;
+    }
+    if (options?.campusQuery) {
+      args.campus_query = options.campusQuery;
+    }
+    if (options?.topSources !== undefined) {
+      args.top_sources = options.topSources;
+    }
+    if (options?.topDestinations !== undefined) {
+      args.top_destinations = options.topDestinations;
+    }
+    if (options?.minTransferCount !== undefined) {
+      args.min_transfer_count = options.minTransferCount;
+    }
+    if (options?.neighborhoodRadiusMiles !== undefined) {
+      args.neighborhood_radius_miles = options.neighborhoodRadiusMiles;
+    }
+    // @ts-ignore
+    return callTool('get_transfer_insights', args);
+  },
+  getStaffingDashboard: async () => {
+      return callTool('get_staffing_dashboard', {});
+  },
   compareCampuses: async (ids: string[]) => {
       // @ts-ignore
       return callTool('compare_campuses', { identifiers: ids });

@@ -1,0 +1,1669 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TEA Data Explorer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --accent: #1d4ed8;
+        --accent-2: #2563eb;
+        --accent-soft: rgba(37, 99, 235, 0.12);
+        --warning: #b45309;
+        --danger: #b91c1c;
+        --table-header: #f1f5f9;
+        --badge-bg: #e2e8f0;
+        --badge-text: #334155;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b1220;
+          --card: #111827;
+          --text: #e2e8f0;
+          --muted: #94a3b8;
+          --border: #1f2937;
+          --accent: #60a5fa;
+          --accent-2: #38bdf8;
+          --accent-soft: rgba(96, 165, 250, 0.15);
+          --warning: #fbbf24;
+          --danger: #f87171;
+          --table-header: #1f2937;
+          --badge-bg: #1f2937;
+          --badge-text: #cbd5f5;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .header {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .title {
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .badge {
+        background: var(--badge-bg);
+        color: var(--badge-text);
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+
+      .summary-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: rgba(148, 163, 184, 0.08);
+      }
+
+      .summary-card h4 {
+        margin: 0 0 4px;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+      }
+
+      .summary-card p {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .notice {
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--warning);
+        background: rgba(251, 191, 36, 0.12);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+      }
+
+      .notice strong {
+        font-weight: 600;
+      }
+
+      .progress {
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--border);
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: none;
+        background: var(--accent);
+        color: #ffffff;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      button.secondary {
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .status-line {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .table-toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      select,
+      input[type="text"] {
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        font-size: 12px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      thead th {
+        text-align: left;
+        padding: 10px;
+        background: var(--table-header);
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+
+      tbody td {
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+
+      tbody tr:hover {
+        background: rgba(148, 163, 184, 0.08);
+      }
+
+      .rating-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(100, 116, 139, 0.15);
+        color: var(--text);
+      }
+
+      .section-title {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+
+      .stat-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: var(--accent-soft);
+      }
+
+      .stat-card h4 {
+        margin: 0 0 4px;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+      }
+
+      .stat-card p {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .pill-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(148, 163, 184, 0.1);
+        font-size: 12px;
+      }
+
+      .pill-row span {
+        color: var(--muted);
+      }
+
+      .empty {
+        padding: 12px;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .footer {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .actions-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .checkbox {
+        margin-right: 8px;
+      }
+
+      .exports {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .export-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px 12px;
+        background: rgba(148, 163, 184, 0.08);
+        font-size: 12px;
+      }
+
+      .export-meta {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .export-actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .inline-code {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        background: rgba(148, 163, 184, 0.2);
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 11px;
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .debug-panel {
+        display: none;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: rgba(148, 163, 184, 0.08);
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.45;
+        white-space: pre-wrap;
+      }
+
+      .debug-panel.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="title-row">
+          <div class="title">TEA Data Explorer</div>
+          <div class="badges" id="badges"></div>
+        </div>
+        <div class="subtitle" id="subtitle">
+          Run a campus or district tool to render results.
+        </div>
+      </div>
+
+      <div class="summary" id="summary"></div>
+
+      <div class="notice" id="notice" style="display: none;"></div>
+      <div class="progress" id="progress">
+        <div id="progress-label"></div>
+        <div class="progress-bar">
+          <span class="progress-fill" id="progress-fill"></span>
+        </div>
+      </div>
+      <div class="exports" id="exports"></div>
+
+      <div class="controls">
+        <button id="load-more" disabled>Load more</button>
+        <button id="load-all" class="secondary" disabled>Load all</button>
+        <button id="insights" class="secondary">Ask for insights</button>
+        <button id="fullscreen" class="secondary">Fullscreen</button>
+        <button id="toggle-debug" class="secondary">Debug</button>
+        <div class="status-line" id="load-status"></div>
+      </div>
+
+      <div class="content" id="content"></div>
+
+      <div class="debug-panel" id="debug-panel"></div>
+      <div class="footer" id="footer"></div>
+    </div>
+
+    <script>
+      (function () {
+        const DEFAULT_STATE = {
+          sessionId: null,
+          tool: null,
+          payload: null,
+          items: [],
+          comparison: [],
+          selected: {},
+          listFilter: "",
+          sortKey: "name",
+          sortDir: "asc",
+          completeness: null,
+          table: null,
+          exports: null,
+          querySummary: null,
+          lastMessage: null,
+          arguments: null
+        };
+
+        const elements = {
+          badges: document.getElementById("badges"),
+          subtitle: document.getElementById("subtitle"),
+          summary: document.getElementById("summary"),
+          notice: document.getElementById("notice"),
+          progress: document.getElementById("progress"),
+          progressLabel: document.getElementById("progress-label"),
+          progressFill: document.getElementById("progress-fill"),
+          exports: document.getElementById("exports"),
+          loadMore: document.getElementById("load-more"),
+          loadAll: document.getElementById("load-all"),
+          insights: document.getElementById("insights"),
+          fullscreen: document.getElementById("fullscreen"),
+          toggleDebug: document.getElementById("toggle-debug"),
+          loadStatus: document.getElementById("load-status"),
+          content: document.getElementById("content"),
+          debugPanel: document.getElementById("debug-panel"),
+          footer: document.getElementById("footer")
+        };
+
+        let state = loadInitialState();
+        let isLoadingMore = false;
+        let isLoadingAll = false;
+        let tableSnapshot = null;
+        let showDebug = false;
+        let lastRenderTiming = { total_ms: 0 };
+        const stateListeners = new Set();
+
+        function notifyStateChange() {
+          stateListeners.forEach((handler) => handler());
+        }
+
+        function progressToken(snapshot) {
+          const current = snapshot || state;
+          const loaded = (current.items || []).length;
+          const cursor = current.payload?.pagination?.cursor ?? "";
+          const nextCursor = current.payload?.pagination?.next_cursor ?? "";
+          return `${loaded}|${cursor}|${nextCursor}`;
+        }
+
+        function waitForProgressChange(prevToken, timeoutMs = 8000) {
+          return new Promise((resolve) => {
+            let timeoutId = null;
+            const handler = () => {
+              const nextToken = progressToken();
+              if (nextToken !== prevToken) {
+                if (timeoutId) {
+                  clearTimeout(timeoutId);
+                }
+                stateListeners.delete(handler);
+                resolve(true);
+              }
+            };
+            stateListeners.add(handler);
+            timeoutId = setTimeout(() => {
+              stateListeners.delete(handler);
+              resolve(false);
+            }, timeoutMs);
+          });
+        }
+
+        function loadInitialState() {
+          if (window.openai && window.openai.widgetState) {
+            return window.openai.widgetState;
+          }
+          return { ...DEFAULT_STATE };
+        }
+
+        function persistState(nextState) {
+          state = nextState;
+          if (window.openai && window.openai.setWidgetState) {
+            window.openai.setWidgetState(state);
+          }
+        }
+
+        function escapeHtml(value) {
+          if (value === null || value === undefined) {
+            return "";
+          }
+          return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function ratingLabel(value) {
+          const text = value || "";
+          if (!text) {
+            return "Not Rated";
+          }
+          return text;
+        }
+
+        function ratingColor(value) {
+          if (!value) {
+            return "#94a3b8";
+          }
+          const normalized = String(value).toUpperCase();
+          if (normalized.startsWith("A")) {
+            return "#22c55e";
+          }
+          if (normalized.startsWith("B")) {
+            return "#84cc16";
+          }
+          if (normalized.startsWith("C")) {
+            return "#fbbf24";
+          }
+          if (normalized.startsWith("D")) {
+            return "#f97316";
+          }
+          if (normalized.startsWith("F")) {
+            return "#ef4444";
+          }
+          if (normalized.includes("NOT RATED")) {
+            return "#94a3b8";
+          }
+          return "#60a5fa";
+        }
+
+        function normalizeToolOutput(output) {
+          if (!output) {
+            return null;
+          }
+          if (output.payload) {
+            return output;
+          }
+          return {
+            payload: output
+          };
+        }
+
+        function sessionFallback(tool, payload, args) {
+          const bits = [tool];
+          if (args?.identifier) {
+            bits.push(args.identifier);
+          }
+          if (args?.district_identifier) {
+            bits.push(args.district_identifier);
+          }
+          if (args?.query) {
+            bits.push(args.query);
+          }
+          if (args?.status) {
+            bits.push(args.status);
+          }
+          return bits.filter(Boolean).join("|") || "explorer-session";
+        }
+
+        function mergeByKey(existing, incoming, keyFn) {
+          const map = {};
+          existing.forEach((item) => {
+            map[keyFn(item)] = item;
+          });
+          incoming.forEach((item) => {
+            map[keyFn(item)] = item;
+          });
+          return Object.values(map);
+        }
+
+        function itemKey(item) {
+          return item.campus_number || item.district_number || item.name;
+        }
+
+        function applyToolOutput(toolOutput, meta) {
+          const normalized = normalizeToolOutput(toolOutput);
+          if (!normalized) {
+            return;
+          }
+          const payload = normalized.payload;
+          const tool = normalized.tool || toolOutput.tool || "unknown";
+          const args = normalized.arguments || toolOutput.arguments || {};
+          const sessionId =
+            (meta && meta["openai/widgetSessionId"]) ||
+            sessionFallback(tool, payload, args);
+          let nextState =
+            state.sessionId === sessionId
+              ? { ...state }
+              : { ...DEFAULT_STATE, sessionId };
+
+          nextState.tool = tool;
+          nextState.payload = payload;
+          nextState.lastMessage = normalized.message || toolOutput.message || null;
+          nextState.arguments = args;
+          nextState.completeness = payload?.completeness || nextState.completeness;
+          nextState.table = payload?.table || nextState.table;
+          nextState.exports =
+            payload?.exports || payload?.table?.exports || nextState.exports;
+          nextState.querySummary = payload?.query_summary || nextState.querySummary;
+
+          if (tool === "search_campuses") {
+            const results = Array.isArray(payload.results) ? payload.results : [];
+            nextState.items = mergeByKey(nextState.items || [], results, itemKey);
+          } else if (tool === "get_district_detail") {
+            const campuses = Array.isArray(payload.campuses) ? payload.campuses : [];
+            nextState.items = mergeByKey(nextState.items || [], campuses, itemKey);
+          } else if (tool === "get_nearby_campuses") {
+            const results = Array.isArray(payload.results) ? payload.results : [];
+            nextState.items = mergeByKey(nextState.items || [], results, itemKey);
+          } else if (tool === "compare_campuses") {
+            nextState.comparison = Array.isArray(payload.comparison)
+              ? payload.comparison
+              : [];
+          } else {
+            nextState.items = [];
+            nextState.comparison = [];
+          }
+
+          persistState(nextState);
+          notifyStateChange();
+        }
+
+        function renderBadges() {
+          const badges = [];
+          if (state.tool) {
+            badges.push(state.tool.replace(/_/g, " "));
+          }
+          if (state.arguments?.query) {
+            badges.push(`query: ${state.arguments.query}`);
+          }
+          if (state.arguments?.district_identifier) {
+            badges.push(`district: ${state.arguments.district_identifier}`);
+          }
+          if (state.arguments?.identifier && !state.arguments?.district_identifier) {
+            badges.push(`id: ${state.arguments.identifier}`);
+          }
+          if (state.arguments?.radius_miles) {
+            badges.push(`radius: ${state.arguments.radius_miles} mi`);
+          }
+          if (state.payload?.pagination?.has_more) {
+            badges.push("More available");
+          }
+          if (needsFollowUp()) {
+            badges.push("Incomplete");
+          }
+          elements.badges.innerHTML = badges
+            .map((text) => `<span class="badge">${escapeHtml(text)}</span>`)
+            .join("");
+        }
+
+        function needsFollowUp() {
+          if (state.completeness?.needs_follow_up) {
+            return true;
+          }
+          if (state.payload?.pagination?.has_more) {
+            return true;
+          }
+          if (state.payload?.response_trimmed?.applied) {
+            return true;
+          }
+          return false;
+        }
+
+        function renderNotice() {
+          const notes = [];
+          if (state.payload?.response_trimmed?.applied) {
+            notes.push("Response trimmed to fit size limits.");
+          }
+          if (state.payload?.pagination?.has_more) {
+            notes.push("More results are available.");
+          }
+          if (state.completeness?.missing_count) {
+            notes.push(`Missing ${state.completeness.missing_count} items.`);
+          }
+          if (!notes.length) {
+            elements.notice.style.display = "none";
+            elements.notice.textContent = "";
+            return;
+          }
+          const prefix = needsFollowUp()
+            ? "<strong>Incomplete results.</strong> "
+            : "";
+          elements.notice.style.display = "block";
+          elements.notice.innerHTML = `${prefix}${escapeHtml(notes.join(" "))}`;
+        }
+
+        function renderProgress() {
+          const listTools = ["search_campuses", "get_district_detail", "get_nearby_campuses"];
+          if (!listTools.includes(state.tool || "")) {
+            elements.progress.style.display = "none";
+            return;
+          }
+          const loaded = state.items.length;
+          const total = state.payload?.pagination?.total_matches;
+          const shouldShow = Boolean(total || needsFollowUp());
+          if (!shouldShow) {
+            elements.progress.style.display = "none";
+            return;
+          }
+          elements.progress.style.display = "flex";
+          const label = total
+            ? `Loaded ${loaded} of ${total} results`
+            : `Loaded ${loaded} results`;
+          elements.progressLabel.textContent = label;
+          const percent = total ? Math.min(100, (loaded / total) * 100) : 100;
+          elements.progressFill.style.width = `${percent}%`;
+          elements.progressFill.style.opacity = total ? "1" : "0.4";
+        }
+
+        function renderExports() {
+          const exports =
+            state.exports ||
+            state.table?.exports ||
+            state.payload?.exports ||
+            state.payload?.table?.exports;
+          if (!exports) {
+            elements.exports.innerHTML = "";
+            return;
+          }
+          const rows = ["csv", "json"]
+            .map((format) => {
+              const entry = exports[format];
+              if (!entry) {
+                return "";
+              }
+              const label = format.toUpperCase();
+              const rowCount = entry.row_count ? `${entry.row_count} rows` : "Export";
+              const uri = entry.resource_uri || "";
+              return `
+                <div class="export-row">
+                  <div>
+                    <div><strong>${escapeHtml(label)} export</strong> ${escapeHtml(rowCount)}</div>
+                    <div class="export-meta">resource_uri: <span class="inline-code">${escapeHtml(
+                      uri
+                    )}</span></div>
+                  </div>
+                  <div class="export-actions">
+                    <button class="secondary" data-export-action="open" data-export-uri="${escapeHtml(
+                      uri
+                    )}">Open</button>
+                    <button class="secondary" data-export-action="copy" data-export-uri="${escapeHtml(
+                      uri
+                    )}">Copy</button>
+                  </div>
+                </div>
+              `;
+            })
+            .join("");
+          elements.exports.innerHTML = rows;
+        }
+
+        function renderSummary() {
+          const summaryItems = [];
+          if (state.tool === "search_campuses") {
+            summaryItems.push({
+              label: "Results",
+              value: state.items.length
+            });
+            if (state.payload?.pagination?.total_matches) {
+              summaryItems.push({
+                label: "Total matches",
+                value: state.payload.pagination.total_matches
+              });
+            }
+          }
+          if (state.tool === "get_district_detail") {
+            summaryItems.push({
+              label: "District",
+              value: state.payload?.name || "Unknown"
+            });
+            summaryItems.push({
+              label: "Enrollment",
+              value: state.payload?.enrollment || "N/A"
+            });
+            summaryItems.push({
+              label: "Campuses",
+              value: state.items.length
+            });
+          }
+          if (state.tool === "get_district") {
+            summaryItems.push({
+              label: "District",
+              value: state.payload?.name || "Unknown"
+            });
+            summaryItems.push({
+              label: "Enrollment",
+              value: state.payload?.enrollment || "N/A"
+            });
+            summaryItems.push({
+              label: "District #",
+              value: state.payload?.district_number || "N/A"
+            });
+          }
+          if (state.tool === "get_campus_detail") {
+            summaryItems.push({
+              label: "Campus",
+              value: state.payload?.name || "Unknown"
+            });
+            summaryItems.push({
+              label: "Enrollment",
+              value: state.payload?.enrollment || "N/A"
+            });
+            summaryItems.push({
+              label: "Rating",
+              value:
+                state.payload?.overall_rating_2025 ||
+                state.payload?.rating ||
+                "Not Rated"
+            });
+          }
+          if (state.tool === "get_nearby_campuses") {
+            summaryItems.push({
+              label: "Nearby",
+              value: state.items.length
+            });
+          }
+          if (state.tool === "compare_campuses") {
+            summaryItems.push({
+              label: "Compared",
+              value: state.comparison.length
+            });
+          }
+
+          if (!summaryItems.length) {
+            elements.summary.innerHTML = "";
+            return;
+          }
+          elements.summary.innerHTML = summaryItems
+            .map(
+              (item) =>
+                `<div class="summary-card"><h4>${escapeHtml(
+                  item.label
+                )}</h4><p>${escapeHtml(item.value)}</p></div>`
+            )
+            .join("");
+        }
+
+        function renderSearchList() {
+          const list = state.items || [];
+          const filter = state.listFilter.toLowerCase();
+          let filtered = list.filter((item) => {
+            if (!filter) {
+              return true;
+            }
+            return (
+              String(item.name || "").toLowerCase().includes(filter) ||
+              String(item.campus_number || "").toLowerCase().includes(filter)
+            );
+          });
+
+          const sortKey = state.sortKey || "name";
+          const sortDir = state.sortDir === "desc" ? -1 : 1;
+
+          filtered.sort((a, b) => {
+            const av = a[sortKey] || "";
+            const bv = b[sortKey] || "";
+            if (typeof av === "number" && typeof bv === "number") {
+              return (av - bv) * sortDir;
+            }
+            return String(av).localeCompare(String(bv)) * sortDir;
+          });
+
+          const rows = filtered
+            .map((item) => {
+              const rating = item.overall_rating_2025 || item.rating || "";
+              const ratingText = ratingLabel(rating);
+              const ratingColorValue = ratingColor(ratingText);
+              const checked = state.selected[itemKey(item)] ? "checked" : "";
+              return `<tr>
+                <td>
+                  <input class="checkbox" type="checkbox" data-key="${escapeHtml(
+                    itemKey(item)
+                  )}" ${checked} />
+                  ${escapeHtml(item.name || "")}
+                </td>
+                <td>${escapeHtml(item.district_name || "")}</td>
+                <td>${escapeHtml(item.campus_number || "")}</td>
+                <td><span class="rating-pill"><i style="background:${ratingColorValue}"></i>${escapeHtml(
+                  ratingText
+                )}</span></td>
+                <td><button class="secondary" data-action="view" data-campus="${escapeHtml(
+                  item.campus_number || ""
+                )}">View</button></td>
+              </tr>`;
+            })
+            .join("");
+
+          return `
+            <div class="section-title">Campuses</div>
+            <div class="table-toolbar">
+              <input id="filter-input" type="text" placeholder="Filter by name or ID" value="${escapeHtml(
+                state.listFilter
+              )}" />
+              <select id="sort-key">
+                <option value="name" ${
+                  sortKey === "name" ? "selected" : ""
+                }>Sort by name</option>
+                <option value="overall_rating_2025" ${
+                  sortKey === "overall_rating_2025" ? "selected" : ""
+                }>Sort by rating</option>
+                <option value="enrollment" ${
+                  sortKey === "enrollment" ? "selected" : ""
+                }>Sort by enrollment</option>
+              </select>
+              <select id="sort-dir">
+                <option value="asc" ${
+                  state.sortDir === "asc" ? "selected" : ""
+                }>Ascending</option>
+                <option value="desc" ${
+                  state.sortDir === "desc" ? "selected" : ""
+                }>Descending</option>
+              </select>
+              <button id="compare-selected" class="secondary">Compare selected</button>
+            </div>
+            ${
+              rows
+                ? `<table>
+                <thead>
+                  <tr>
+                    <th>Campus</th>
+                    <th>District</th>
+                    <th>Campus #</th>
+                    <th>Rating</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>`
+                : '<div class="empty">No campuses match the filter.</div>'
+            }
+          `;
+        }
+
+        function renderNearbyList() {
+          const rows = (state.items || [])
+            .map((item) => {
+              const rating = item.overall_rating_2025 || item.rating || "";
+              const ratingText = ratingLabel(rating);
+              const ratingColorValue = ratingColor(ratingText);
+              return `<tr>
+                <td>${escapeHtml(item.name || "")}</td>
+                <td>${escapeHtml(item.district_name || "")}</td>
+                <td>${escapeHtml(item.distance_miles || "")}</td>
+                <td><span class="rating-pill"><i style="background:${ratingColorValue}"></i>${escapeHtml(
+                  ratingText
+                )}</span></td>
+                <td><button class="secondary" data-action="view" data-campus="${escapeHtml(
+                  item.campus_number || ""
+                )}">View</button></td>
+              </tr>`;
+            })
+            .join("");
+
+          return `
+            <div class="section-title">Nearby Campuses</div>
+            ${
+              rows
+                ? `<table>
+                <thead>
+                  <tr>
+                    <th>Campus</th>
+                    <th>District</th>
+                    <th>Miles</th>
+                    <th>Rating</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>`
+                : '<div class="empty">No nearby campuses returned.</div>'
+            }
+          `;
+        }
+
+        function renderComparison() {
+          const rows = (state.comparison || [])
+            .map((item) => {
+              return `<tr>
+                <td>${escapeHtml(item.name || "")}</td>
+                <td>${escapeHtml(item.campus_number || "")}</td>
+                <td>${escapeHtml(item.rating || "")}</td>
+                <td>${escapeHtml(item.enrollment || "")}</td>
+                <td>${escapeHtml(item.avg_teacher_salary || "")}</td>
+                <td>${escapeHtml(item.student_teacher_ratio || "")}</td>
+              </tr>`;
+            })
+            .join("");
+
+          return `
+            <div class="section-title">Comparison</div>
+            ${
+              rows
+                ? `<table>
+                <thead>
+                  <tr>
+                    <th>Campus</th>
+                    <th>Campus #</th>
+                    <th>Rating</th>
+                    <th>Enrollment</th>
+                    <th>Avg Salary</th>
+                    <th>Student/Teacher</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>`
+                : '<div class="empty">No comparison results yet.</div>'
+            }
+          `;
+        }
+
+        function tableRowsToObjects(table) {
+          const columns = Array.isArray(table?.columns) ? table.columns : [];
+          const rows = Array.isArray(table?.rows) ? table.rows : [];
+          return rows.map((row) => {
+            const obj = {};
+            columns.forEach((col, index) => {
+              obj[col.key] = row[index];
+            });
+            return obj;
+          });
+        }
+
+        function formatCell(key, value) {
+          if (key === "overall_rating_2025" || key === "rating") {
+            const ratingText = ratingLabel(value);
+            const ratingColorValue = ratingColor(ratingText);
+            return `<span class="rating-pill"><i style="background:${ratingColorValue}"></i>${escapeHtml(
+              ratingText
+            )}</span>`;
+          }
+          if (value === null || value === undefined) {
+            return "";
+          }
+          return escapeHtml(value);
+        }
+
+        function buildActionArgs(action, row) {
+          const args = {};
+          const mapping = action.args_from_row || {};
+          Object.keys(mapping).forEach((argName) => {
+            const keys = Array.isArray(mapping[argName])
+              ? mapping[argName]
+              : [mapping[argName]];
+            for (const key of keys) {
+              const value = row[key];
+              if (value !== null && value !== undefined && String(value).trim() !== "") {
+                args[argName] = value;
+                break;
+              }
+            }
+          });
+          return args;
+        }
+
+        function handleRowActionClick(event) {
+          const button = event.target.closest("button[data-row-action]");
+          if (!button || !window.openai?.callTool) {
+            return;
+          }
+          const actionId = button.getAttribute("data-row-action");
+          const rowIndex = Number(button.getAttribute("data-row-index"));
+          if (!tableSnapshot || Number.isNaN(rowIndex)) {
+            return;
+          }
+          const action = (tableSnapshot.rowActions || []).find(
+            (item) => item.id === actionId
+          );
+          const row = (tableSnapshot.rows || [])[rowIndex];
+          if (!action || !row) {
+            return;
+          }
+          const args = buildActionArgs(action, row);
+          if (!Object.keys(args).length) {
+            return;
+          }
+          window.openai.callTool(action.tool, args);
+        }
+
+        function renderGenericTable() {
+          const table = state.table;
+          if (!table || !Array.isArray(table.columns) || !table.columns.length) {
+            return '<div class="empty">No table available.</div>';
+          }
+          const rowActions = table.row_actions || [];
+          const rowObjects = tableRowsToObjects(table);
+          tableSnapshot = { columns: table.columns, rows: rowObjects, rowActions };
+
+          const headerCells = table.columns
+            .map((col) => `<th>${escapeHtml(col.label || col.key)}</th>`)
+            .concat(rowActions.length ? "<th>Actions</th>" : []);
+
+          const bodyRows = rowObjects
+            .map((row, index) => {
+              const cells = table.columns.map(
+                (col) => `<td>${formatCell(col.key, row[col.key])}</td>`
+              );
+              if (rowActions.length) {
+                const actionsHtml = rowActions
+                  .map(
+                    (action) =>
+                      `<button class="secondary" data-row-action="${escapeHtml(
+                        action.id
+                      )}" data-row-index="${index}">${escapeHtml(action.label)}</button>`
+                  )
+                  .join(" ");
+                cells.push(`<td><div class="row-actions">${actionsHtml}</div></td>`);
+              }
+              return `<tr>${cells.join("")}</tr>`;
+            })
+            .join("");
+
+          return `
+            <div class="section-title">Table</div>
+            <table>
+              <thead><tr>${headerCells.join("")}</tr></thead>
+              <tbody>${bodyRows}</tbody>
+            </table>
+          `;
+        }
+
+        function renderCampusDetail() {
+          const campus = state.payload || {};
+          const rating =
+            campus.overall_rating_2025 || campus.rating || "Not Rated";
+          const ratingText = ratingLabel(rating);
+          const ratingColorValue = ratingColor(ratingText);
+          const staffing = campus.staffing || {};
+          const demographics = campus.demographics || {};
+          const programs = demographics.programs_percent || {};
+
+          return `
+            <div class="section-title">Campus Overview</div>
+            <div class="stat-grid">
+              <div class="stat-card">
+                <h4>Rating</h4>
+                <p><span class="rating-pill"><i style="background:${ratingColorValue}"></i>${escapeHtml(
+            ratingText
+          )}</span></p>
+              </div>
+              <div class="stat-card">
+                <h4>Enrollment</h4>
+                <p>${escapeHtml(campus.enrollment || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>Grade Range</h4>
+                <p>${escapeHtml(campus.grade_range || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>District</h4>
+                <p>${escapeHtml(campus.district_name || "N/A")}</p>
+              </div>
+            </div>
+            <div class="section-title">Staffing</div>
+            <div class="stat-grid">
+              <div class="stat-card">
+                <h4>Teachers (FTE)</h4>
+                <p>${escapeHtml(staffing.total_teachers_fte || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>Student/Teacher</h4>
+                <p>${escapeHtml(staffing.student_teacher_ratio || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>Avg Salary</h4>
+                <p>${escapeHtml(staffing.avg_teacher_salary || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>Avg Experience</h4>
+                <p>${escapeHtml(staffing.avg_teacher_experience_years || "N/A")}</p>
+              </div>
+            </div>
+            <div class="section-title">Programs</div>
+            <div class="stat-grid">
+              <div class="stat-card">
+                <h4>Economically Disadv.</h4>
+                <p>${escapeHtml(programs.econ_disadv || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>Special Ed</h4>
+                <p>${escapeHtml(programs.special_ed || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>Emergent Bilingual</h4>
+                <p>${escapeHtml(programs.emergent_bilingual || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>Immigrant</h4>
+                <p>${escapeHtml(programs.immigrant || "N/A")}</p>
+              </div>
+            </div>
+            <div class="actions-row">
+              <button id="nearby" class="secondary">Find nearby campuses</button>
+              <button id="district-boundary" class="secondary">Show district boundary</button>
+            </div>
+          `;
+        }
+
+        function renderDistrictDetail() {
+          const district = state.payload || {};
+          const rating =
+            district.overall_rating_2025 || district.rating || "Not Rated";
+          const ratingText = ratingLabel(rating);
+          const ratingColorValue = ratingColor(ratingText);
+
+          return `
+            <div class="section-title">District Overview</div>
+            <div class="stat-grid">
+              <div class="stat-card">
+                <h4>Rating</h4>
+                <p><span class="rating-pill"><i style="background:${ratingColorValue}"></i>${escapeHtml(
+            ratingText
+          )}</span></p>
+              </div>
+              <div class="stat-card">
+                <h4>Enrollment</h4>
+                <p>${escapeHtml(district.enrollment || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>District #</h4>
+                <p>${escapeHtml(district.district_number || "N/A")}</p>
+              </div>
+            </div>
+            <div class="actions-row">
+              <button id="district-boundary" class="secondary">Show district boundary</button>
+            </div>
+            ${renderSearchList()}
+          `;
+        }
+
+        function renderDistrictSummary() {
+          const district = state.payload || {};
+          const rating =
+            district.overall_rating_2025 || district.rating || "Not Rated";
+          const ratingText = ratingLabel(rating);
+          const ratingColorValue = ratingColor(ratingText);
+          return `
+            <div class="section-title">District Snapshot</div>
+            <div class="stat-grid">
+              <div class="stat-card">
+                <h4>Rating</h4>
+                <p><span class="rating-pill"><i style="background:${ratingColorValue}"></i>${escapeHtml(
+            ratingText
+          )}</span></p>
+              </div>
+              <div class="stat-card">
+                <h4>Enrollment</h4>
+                <p>${escapeHtml(district.enrollment || "N/A")}</p>
+              </div>
+              <div class="stat-card">
+                <h4>District #</h4>
+                <p>${escapeHtml(district.district_number || "N/A")}</p>
+              </div>
+            </div>
+            <div class="actions-row">
+              <button id="district-detail" class="secondary">Load district campuses</button>
+              <button id="district-boundary" class="secondary">Show district boundary</button>
+            </div>
+          `;
+        }
+
+        function renderDebug() {
+          if (!elements.debugPanel) {
+            return;
+          }
+          if (!showDebug) {
+            elements.debugPanel.classList.remove("visible");
+            return;
+          }
+          const itemsCount = (state.items || []).length;
+          const hasMore = Boolean(state.payload?.pagination?.has_more);
+          const cursor = state.payload?.pagination?.cursor ?? 0;
+          const nextCursor = state.payload?.pagination?.next_cursor ?? null;
+          const trimmed = Boolean(state.payload?.response_trimmed?.applied);
+          const lines = [
+            `tool: ${state.tool || ""}`,
+            `items: ${itemsCount}`,
+            `cursor: ${cursor}`,
+            `next_cursor: ${nextCursor === null ? "" : nextCursor}`,
+            `has_more: ${hasMore}`,
+            `trimmed: ${trimmed}`,
+            `render_total_ms: ${lastRenderTiming.total_ms.toFixed(1)}`
+          ];
+          elements.debugPanel.textContent = lines.join("\n");
+          elements.debugPanel.classList.add("visible");
+        }
+
+        function render() {
+          const renderStart = performance.now();
+          elements.subtitle.textContent =
+            state.lastMessage ||
+            "Run a campus or district tool to render results.";
+          renderBadges();
+          renderSummary();
+          renderNotice();
+          renderProgress();
+          renderExports();
+
+          let contentHtml = "";
+          if (state.tool === "search_campuses") {
+            contentHtml = renderSearchList();
+          } else if (state.tool === "get_campus_detail") {
+            contentHtml = renderCampusDetail();
+          } else if (state.tool === "get_district") {
+            contentHtml = renderDistrictSummary();
+          } else if (state.tool === "get_district_detail") {
+            contentHtml = renderDistrictDetail();
+          } else if (state.tool === "get_nearby_campuses") {
+            contentHtml = renderNearbyList();
+          } else if (state.tool === "compare_campuses") {
+            contentHtml = renderComparison();
+          } else if (!state.tool) {
+            contentHtml =
+              '<div class="empty">No tool output yet. Try search_campuses or get_campus_detail.</div>';
+          } else if (state.table) {
+            contentHtml = renderGenericTable();
+          } else {
+            contentHtml =
+              '<div class="empty">This tool does not have a dedicated view yet.</div>';
+          }
+
+          elements.content.innerHTML = contentHtml;
+          bindHandlers();
+          lastRenderTiming.total_ms = performance.now() - renderStart;
+          renderDebug();
+
+          const nextCall = state.payload?.next_tool_call;
+          const canLoad = nextCall && window.openai && window.openai.callTool;
+          elements.loadMore.disabled = !canLoad || isLoadingMore || isLoadingAll;
+          elements.loadAll.disabled = !canLoad || !window.openai?.callTool;
+          elements.loadAll.textContent = isLoadingAll ? "Stop loading" : "Load all";
+          elements.loadStatus.textContent = isLoadingMore
+            ? "Loading..."
+            : isLoadingAll
+            ? "Loading all pages..."
+            : canLoad
+            ? "More results available."
+            : "";
+
+          renderFooter();
+        }
+
+        function renderFooter() {
+          const notes = [];
+          if (state.completeness?.needs_follow_up) {
+            notes.push("Incomplete results. Follow next_tool_call or use Load all.");
+          }
+          if (state.payload?.response_trimmed?.applied) {
+            notes.push("Response trimmed to fit size limits.");
+          }
+          if (state.payload?.pagination?.has_more) {
+            notes.push(
+              `More results available. Next cursor: ${state.payload.pagination.next_cursor}`
+            );
+          }
+          if (!notes.length) {
+            notes.push("Up to date with the latest response.");
+          }
+          elements.footer.textContent = notes.join(" ");
+        }
+
+        function handleToggleDebug() {
+          showDebug = !showDebug;
+          elements.toggleDebug.textContent = showDebug ? "Hide debug" : "Debug";
+          render();
+        }
+
+        async function handleLoadMore() {
+          const nextCall = state.payload?.next_tool_call;
+          if (!nextCall || !window.openai || !window.openai.callTool) {
+            return;
+          }
+          if (isLoadingMore || isLoadingAll) {
+            return;
+          }
+          try {
+            isLoadingMore = true;
+            render();
+            await window.openai.callTool(nextCall.tool, nextCall.arguments);
+          } catch (err) {
+            elements.loadStatus.textContent =
+              err && err.message ? err.message : "Failed to load more results.";
+          } finally {
+            isLoadingMore = false;
+            render();
+          }
+        }
+
+        async function handleLoadAll() {
+          if (!window.openai || !window.openai.callTool) {
+            return;
+          }
+          if (isLoadingAll) {
+            isLoadingAll = false;
+            render();
+            return;
+          }
+          const nextCall = state.payload?.next_tool_call;
+          if (!nextCall) {
+            return;
+          }
+          isLoadingAll = true;
+          render();
+          let safety = 0;
+          while (isLoadingAll) {
+            const call = state.payload?.next_tool_call;
+            if (!call) {
+              break;
+            }
+            const previousToken = progressToken();
+            try {
+              await window.openai.callTool(call.tool, call.arguments);
+            } catch (err) {
+              elements.loadStatus.textContent =
+                err && err.message ? err.message : "Failed to load additional pages.";
+              break;
+            }
+            const progressed = await waitForProgressChange(previousToken, 12000);
+            if (!progressed) {
+              break;
+            }
+            if (!state.payload?.pagination?.has_more) {
+              break;
+            }
+            safety += 1;
+            if (safety > 50) {
+              break;
+            }
+          }
+          isLoadingAll = false;
+          render();
+        }
+
+        async function handleFullscreen() {
+          if (!window.openai?.requestDisplayMode) {
+            return;
+          }
+          await window.openai.requestDisplayMode({ mode: "fullscreen" });
+        }
+
+        async function copyToClipboard(value) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(value);
+              elements.loadStatus.textContent = "Copied export URI.";
+              return;
+            } catch (err) {
+              // fall through
+            }
+          }
+          window.prompt("Copy export URI:", value);
+        }
+
+        function handleExportClick(event) {
+          const button = event.target.closest("button[data-export-action]");
+          if (!button) {
+            return;
+          }
+          const action = button.getAttribute("data-export-action");
+          const uri = button.getAttribute("data-export-uri");
+          if (!uri) {
+            return;
+          }
+          if (action === "open") {
+            if (window.openai?.openExternal) {
+              window.openai.openExternal({ href: uri });
+            } else {
+              copyToClipboard(uri);
+            }
+          } else if (action === "copy") {
+            copyToClipboard(uri);
+          }
+        }
+
+        function bindHandlers() {
+          const filterInput = document.getElementById("filter-input");
+          if (filterInput) {
+            filterInput.onchange = (event) => {
+              const value = event.target.value || "";
+              persistState({ ...state, listFilter: value });
+              render();
+            };
+          }
+          const sortKey = document.getElementById("sort-key");
+          if (sortKey) {
+            sortKey.onchange = (event) => {
+              persistState({ ...state, sortKey: event.target.value });
+              render();
+            };
+          }
+          const sortDir = document.getElementById("sort-dir");
+          if (sortDir) {
+            sortDir.onchange = (event) => {
+              persistState({ ...state, sortDir: event.target.value });
+              render();
+            };
+          }
+
+          document.querySelectorAll("input[type='checkbox'][data-key]").forEach((el) => {
+            el.onchange = () => {
+              const key = el.getAttribute("data-key");
+              if (!key) return;
+              const selected = { ...(state.selected || {}) };
+              if (el.checked) {
+                selected[key] = true;
+              } else {
+                delete selected[key];
+              }
+              persistState({ ...state, selected });
+              render();
+            };
+          });
+
+          document.querySelectorAll("button[data-action='view']").forEach((button) => {
+            button.onclick = async () => {
+              const campus = button.getAttribute("data-campus");
+              if (!campus || !window.openai || !window.openai.callTool) {
+                return;
+              }
+              await window.openai.callTool("get_campus_detail", {
+                identifier: campus
+              });
+            };
+          });
+
+          const compareButton = document.getElementById("compare-selected");
+          if (compareButton) {
+            compareButton.onclick = async () => {
+              const ids = Object.keys(state.selected || {});
+              if (ids.length < 2) {
+                return;
+              }
+              if (!window.openai || !window.openai.callTool) {
+                return;
+              }
+              await window.openai.callTool("compare_campuses", {
+                identifiers: ids
+              });
+            };
+          }
+
+          const nearbyButton = document.getElementById("nearby");
+          if (nearbyButton) {
+            nearbyButton.onclick = async () => {
+              if (!window.openai || !window.openai.callTool) {
+                return;
+              }
+              const campusNumber = state.payload?.campus_number;
+              if (!campusNumber) {
+                return;
+              }
+              await window.openai.callTool("get_nearby_campuses", {
+                identifier: campusNumber,
+                radius_miles: 5.0
+              });
+            };
+          }
+
+          const boundaryButton = document.getElementById("district-boundary");
+          if (boundaryButton) {
+            boundaryButton.onclick = async () => {
+              if (!window.openai || !window.openai.callTool) {
+                return;
+              }
+              const district = state.payload?.district_name || state.payload?.name;
+              if (!district) {
+                return;
+              }
+              await window.openai.callTool("find_campuses_in_district_boundary", {
+                district_identifier: district,
+                response_profile: "both",
+                campus_list_format: "full",
+                include_total: true
+              });
+            };
+          }
+
+          const districtDetailButton = document.getElementById("district-detail");
+          if (districtDetailButton) {
+            districtDetailButton.onclick = async () => {
+              if (!window.openai || !window.openai.callTool) {
+                return;
+              }
+              const district = state.payload?.district_number || state.payload?.name;
+              if (!district) {
+                return;
+              }
+              await window.openai.callTool("get_district_detail", {
+                identifier: district,
+                include_total: true
+              });
+            };
+          }
+        }
+
+        async function handleInsights() {
+          if (!window.openai || !window.openai.sendFollowUpMessage) {
+            return;
+          }
+          const tool = state.tool || "results";
+          const prompt = `Summarize key insights and standout data from the latest ${tool} results.`;
+          await window.openai.sendFollowUpMessage({ prompt });
+        }
+
+        function syncFromGlobals() {
+          const toolOutput = window.openai ? window.openai.toolOutput : null;
+          const meta = window.openai ? window.openai.toolResponseMetadata : null;
+          if (toolOutput) {
+            applyToolOutput(toolOutput, meta);
+          }
+          render();
+        }
+
+        elements.loadMore.addEventListener("click", handleLoadMore);
+        elements.loadAll.addEventListener("click", handleLoadAll);
+        elements.insights.addEventListener("click", handleInsights);
+        elements.fullscreen.addEventListener("click", handleFullscreen);
+        elements.toggleDebug.addEventListener("click", handleToggleDebug);
+        elements.exports.addEventListener("click", handleExportClick);
+        elements.content.addEventListener("click", handleRowActionClick);
+
+        if (window.addEventListener) {
+          window.addEventListener("openai:set_globals", syncFromGlobals);
+        }
+
+        syncFromGlobals();
+      })();
+    </script>
+  </body>
+</html>

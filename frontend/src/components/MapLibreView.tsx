@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { buildPointFeatureCollection, buildBoundaryFeatureCollection } from './mapUtils';
+import { buildPointFeatureCollection, buildBoundaryFeatureCollection, buildLineFeatureCollection } from './mapUtils';
 
 const BASE_TILE_URL =
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
@@ -34,7 +34,8 @@ export default function MapLibreView({
     boundary,
     bounds,
     className,
-    scrollWheelZoom
+    scrollWheelZoom,
+    lines
 }: {
     center: [number, number];
     zoom: number;
@@ -44,11 +45,20 @@ export default function MapLibreView({
         title: string;
         description?: string;
         rating?: string | number;
+        color?: string;
     }>;
     boundary?: any;
     bounds?: [number, number, number, number];
     className: string;
     scrollWheelZoom: boolean;
+    lines?: Array<{
+        id?: string;
+        from: { lat: number; lon: number; title?: string };
+        to: { lat: number; lon: number; title?: string };
+        count?: number;
+        color?: string;
+        label?: string;
+    }>;
 }) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
@@ -61,6 +71,7 @@ export default function MapLibreView({
 
     const pointData = useMemo(() => buildPointFeatureCollection(markers), [markers]);
     const boundaryData = useMemo(() => buildBoundaryFeatureCollection(boundary), [boundary]);
+    const lineData = useMemo(() => buildLineFeatureCollection(lines || []), [lines]);
 
     useEffect(() => {
         if (!containerRef.current || mapRef.current) {
@@ -120,6 +131,12 @@ export default function MapLibreView({
             '#ef4444',
             '#94a3b8'
         ];
+        const colorExpression: any = [
+            'case',
+            ['has', 'color'],
+            ['get', 'color'],
+            ratingColorExpression
+        ];
 
         const boundarySource = map.getSource('boundary') as maplibregl.GeoJSONSource | undefined;
         if (!boundarySource) {
@@ -150,6 +167,36 @@ export default function MapLibreView({
             boundarySource.setData(boundaryData as any);
         }
 
+        const lineSource = map.getSource('transfer-lines') as maplibregl.GeoJSONSource | undefined;
+        if (!lineSource) {
+            map.addSource('transfer-lines', {
+                type: 'geojson',
+                data: lineData as any
+            });
+            map.addLayer({
+                id: 'transfer-lines',
+                type: 'line',
+                source: 'transfer-lines',
+                paint: {
+                    'line-color': ['coalesce', ['get', 'color'], '#2563eb'],
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['coalesce', ['get', 'count'], 0],
+                        5,
+                        1.5,
+                        50,
+                        3,
+                        150,
+                        5
+                    ],
+                    'line-opacity': 0.7
+                }
+            });
+        } else {
+            lineSource.setData(lineData as any);
+        }
+
         const pointSource = map.getSource('campus-points') as maplibregl.GeoJSONSource | undefined;
         if (!pointSource) {
             map.addSource('campus-points', {
@@ -162,7 +209,7 @@ export default function MapLibreView({
                 source: 'campus-points',
                 paint: {
                     'circle-radius': 5,
-                    'circle-color': ratingColorExpression,
+                    'circle-color': colorExpression,
                     'circle-stroke-color': '#ffffff',
                     'circle-stroke-width': 1
                 }
@@ -203,7 +250,7 @@ export default function MapLibreView({
         } else {
             pointSource.setData(pointData as any);
         }
-    }, [boundaryData, pointData, loaded]);
+    }, [boundaryData, pointData, lineData, loaded]);
 
     useEffect(() => {
         const map = mapRef.current;
