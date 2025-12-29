@@ -523,6 +523,11 @@ class QueryRouter:
         meta_fields: Optional[List[str]] = None,
     ) -> QueryResult:
         """Get detailed information about a specific campus."""
+        if len(identifier) > 100:
+             return QueryResult(
+                status=QueryResultStatus.ERROR,
+                message="Identifier too long (max 100 chars).",
+            )
         try:
             engine = self.engine_provider.ensure_loaded()
         except DataEngineLoadError as exc:
@@ -589,6 +594,11 @@ class QueryRouter:
         neighborhood_radius_miles: float = 5.0,
     ) -> QueryResult:
         """Aggregate transfer flows, ratings, and geographic patterns."""
+        if (district_identifier and len(district_identifier) > 100) or len(campus_query) > 100:
+             return QueryResult(
+                status=QueryResultStatus.ERROR,
+                message="Identifier or query too long (max 100 chars).",
+            )
         try:
             engine = self.engine_provider.ensure_loaded()
         except DataEngineLoadError as exc:
@@ -1074,6 +1084,11 @@ class QueryRouter:
         include_total: bool = False,
     ) -> QueryResult:
         """Get detailed information about a district and its campuses."""
+        if len(identifier) > 100:
+             return QueryResult(
+                status=QueryResultStatus.ERROR,
+                message="Identifier too long (max 100 chars).",
+            )
         try:
             engine = self.engine_provider.ensure_loaded()
         except DataEngineLoadError as exc:
@@ -1307,6 +1322,11 @@ class QueryRouter:
         include_total: bool = False,
     ) -> QueryResult:
         """Find campuses within a specific radius of a school or coordinate."""
+        if identifier and len(identifier) > 100:
+             return QueryResult(
+                status=QueryResultStatus.ERROR,
+                message="Identifier too long (max 100 chars).",
+            )
         try:
             engine = self.engine_provider.ensure_loaded()
         except DataEngineLoadError as exc:
@@ -1488,6 +1508,11 @@ class QueryRouter:
         max_response_bytes: Optional[int] = None,
     ) -> QueryResult:
         """Find campuses that fall within a district's boundary geometry."""
+        if len(district_identifier) > 100 or len(campus_query) > 100:
+             return QueryResult(
+                status=QueryResultStatus.ERROR,
+                message="Identifier or query too long (max 100 chars).",
+            )
         district_identifier = (district_identifier or "").strip()
         if not district_identifier:
             return QueryResult(
