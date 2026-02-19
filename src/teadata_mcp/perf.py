@@ -1,4 +1,5 @@
 """Lightweight perf logging helpers for tool calls."""
+
 from __future__ import annotations
 
 import json
@@ -25,13 +26,19 @@ def _env_flag(name: str, default: bool) -> bool:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
+
 logger = logging.getLogger("teadata_mcp.perf")
 
 _PERF_ENABLED = _env_flag("TEADATA_PERF_LOG", True)
 _PAYLOAD_ENABLED = _env_flag("TEADATA_PERF_PAYLOAD", True)
 _TRACEMALLOC_ENABLED = _env_flag("TEADATA_PERF_TRACEMALLOC", False)
 
-if _PERF_ENABLED and _TRACEMALLOC_ENABLED and tracemalloc and not tracemalloc.is_tracing():
+if (
+    _PERF_ENABLED
+    and _TRACEMALLOC_ENABLED
+    and tracemalloc
+    and not tracemalloc.is_tracing()
+):
     try:
         tracemalloc.start()
     except Exception:
@@ -144,7 +151,9 @@ class PerfTimer:
             parts.append(f"py_current={_format_bytes(after_current)}")
             parts.append(f"py_peak={_format_bytes(after_peak)}")
             if before_current is not None and after_current is not None:
-                parts.append(f"py_delta={_format_bytes(after_current - before_current)}")
+                parts.append(
+                    f"py_delta={_format_bytes(after_current - before_current)}"
+                )
         if payload_bytes is not None:
             parts.append(f"payload_bytes={payload_bytes}")
         for key, value in stats.items():

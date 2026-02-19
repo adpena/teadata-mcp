@@ -139,7 +139,7 @@ export const api = {
     return callTool('get_district_detail', { identifier });
   },
   findCampusesInDistrict: async (districtId: string) => {
-      // @ts-ignore
+      // @ts-expect-error - dynamic tool call args
       return callTool('find_campuses_in_district_boundary', {
           district_identifier: districtId,
           response_profile: 'map',
@@ -149,7 +149,7 @@ export const api = {
       });
   },
   getNearbyCampuses: async (identifier: string) => {
-      // @ts-ignore
+      // @ts-expect-error - dynamic tool call args
       return callTool('get_nearby_campuses', {
           identifier,
           limit: 10,
@@ -183,14 +183,14 @@ export const api = {
     if (options?.neighborhoodRadiusMiles !== undefined) {
       args.neighborhood_radius_miles = options.neighborhoodRadiusMiles;
     }
-    // @ts-ignore
+    // @ts-expect-error - dynamic tool call args
     return callTool('get_transfer_insights', args);
   },
   getStaffingDashboard: async () => {
       return callTool('get_staffing_dashboard', {});
   },
   compareCampuses: async (ids: string[]) => {
-      // @ts-ignore
+      // @ts-expect-error - dynamic tool call args
       return callTool('compare_campuses', { identifiers: ids });
   }
 };

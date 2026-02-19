@@ -1,5 +1,5 @@
 import React from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { List } from 'react-window';
 import { useElementSize } from '../hooks/useElementSize';
 
 interface VirtualizedListProps<T> {
@@ -49,18 +49,16 @@ export function VirtualizedList<T>({
     <div ref={ref} className={className}>
       {width > 0 && (
         <List
-          height={height}
-          width={width}
-          itemCount={items.length}
-          itemSize={itemHeight}
-          itemKey={(index: number) => (itemKey ? itemKey(items[index], index) : index)}
-        >
-          {({ index, style }: { index: number; style: any }) => (
+          rowCount={items.length}
+          rowHeight={itemHeight}
+          rowComponent={({ index, style }) => (
             <div style={style} className="pr-2">
               {renderItem(items[index], index)}
             </div>
           )}
-        </List>
+          rowProps={{}}
+          style={{ height, width }}
+        />
       )}
     </div>
   );

@@ -3,6 +3,7 @@
 Update the TOOLING_GUIDE list when new prompt patterns show up in logs.
 Keep entries short and action-oriented so models can match them quickly.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List
@@ -102,7 +103,10 @@ TOOLING_GUIDE: List[Dict[str, Any]] = [
         "tool": "get_campus_detail",
         "recommended_args": {
             "identifier": "<campus name or number>",
-            "meta_fields": ["overall_rating_2025", "campus_2025_staff_teacher_student_ratio"],
+            "meta_fields": [
+                "overall_rating_2025",
+                "campus_2025_staff_teacher_student_ratio",
+            ],
         },
         "notes": [
             "Full meta blobs are intentionally omitted; request only the keys you need.",

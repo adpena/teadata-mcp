@@ -1,9 +1,8 @@
 """Unit tests for the negative value sanitization logic."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
 from unittest.mock import MagicMock
-from typing import Optional, Any
 
 from teadata_mcp.logic import (
     _sanitize_value,
@@ -13,18 +12,20 @@ from teadata_mcp.logic import (
     collect_demographic_stats,
 )
 
+
 def test_sanitize_value():
     assert _sanitize_value(100) == 100
     assert _sanitize_value(0) == 0
     assert _sanitize_value(None) is None
     assert _sanitize_value(-1) == "."
     assert _sanitize_value(-100.5) == "."
-    assert _sanitize_value("100") == "100" # Should return value if it casts to float
+    assert _sanitize_value("100") == "100"  # Should return value if it casts to float
     # Logic: try float(val). If < 0 return ".". If exception, return val.
     assert _sanitize_value("-5") == "."
 
     # Strings that are not numbers should pass through (e.g. names)
     assert _sanitize_value("Austin") == "Austin"
+
 
 def test_build_summary_sanitizes_enrollment():
     c1 = MagicMock()
@@ -39,7 +40,8 @@ def test_build_summary_sanitizes_enrollment():
     c2.name = "Negative"
     c2.enrollment = -1
     s2 = build_summary(c2)
-    assert s2.enrollment is None # build_summary casts result to int or None
+    assert s2.enrollment is None  # build_summary casts result to int or None
+
 
 def test_collect_stats_sanitizes_negatives():
     c = MagicMock()

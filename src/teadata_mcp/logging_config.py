@@ -138,7 +138,9 @@ def configure_logging() -> None:
             for logger_name in ("uvicorn.error", "uvicorn.access"):
                 logging.getLogger(logger_name).addHandler(file_handler)
         except Exception:
-            root.exception("Failed to configure TEADATA_LOG_FILE", extra={"log_file": log_file})
+            root.exception(
+                "Failed to configure TEADATA_LOG_FILE", extra={"log_file": log_file}
+            )
 
     logging.getLogger("teadata_mcp").setLevel(level)
     logging.getLogger("teadata").setLevel(level)

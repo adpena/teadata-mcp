@@ -1,11 +1,12 @@
 """High level request routing for the MCP server."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
 import re
 import threading
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Optional
 from urllib.parse import urlencode, quote
 
 from teadata.classes import inspect_object, haversine_miles
@@ -22,7 +23,6 @@ from .logic import (
     find_district,
     _format_distance_miles,
     _rating_score_from_text,
-    campus_district_name,
     collect_staff_and_teacher_stats,
     collect_class_size_stats,
     collect_demographic_stats,
@@ -41,9 +41,13 @@ class QueryRouter:
 
     engine_provider: DataEngineProvider
     _campus_cache: Optional[List[CampusSummary]] = field(default=None, init=False)
-    _cache_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
+    _cache_lock: threading.Lock = field(
+        default_factory=threading.Lock, init=False, repr=False
+    )
 
-    def get_district(self, identifier: str, meta_fields: Optional[List[str]] = None) -> QueryResult:
+    def get_district(
+        self, identifier: str, meta_fields: Optional[List[str]] = None
+    ) -> QueryResult:
         """Resolve a district by name or TEA number."""
         identifier = identifier.strip()
         if len(identifier) > 100:
@@ -92,15 +96,15 @@ class QueryRouter:
         """Return a list of available meta keys for a campus or district."""
         entity_type = (entity_type or "").strip().lower()
         identifier = (identifier or "").strip()
-        
+
         if entity_type not in ("campus", "district"):
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Please choose entity_type 'campus' or 'district'.",
             )
-        
+
         if not identifier:
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.UNKNOWN,
                 message="Please supply an identifier.",
             )
@@ -117,20 +121,24 @@ class QueryRouter:
             entity = find_campus(engine, identifier)
         else:
             entity = find_district(engine, identifier)
-            
+
         if entity is None:
             return QueryResult(
                 status=QueryResultStatus.UNKNOWN,
                 message=f"{entity_type.title()} '{identifier}' not found.",
             )
-            
+
         meta = getattr(entity, "meta", {}) or {}
         keys = sorted(list(meta.keys()))
-        
+
         return QueryResult(
             status=QueryResultStatus.OK,
             message=f"Found {len(keys)} data fields for {getattr(entity, 'name', identifier)}.",
-            payload={"entity_type": entity_type, "identifier": identifier, "fields": keys},
+            payload={
+                "entity_type": entity_type,
+                "identifier": identifier,
+                "fields": keys,
+            },
         )
 
     def search_campuses(
@@ -146,7 +154,7 @@ class QueryRouter:
     ) -> QueryResult:
         """Search for campuses by name, number, or district."""
         if len(query) > 100:
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Search query too long (max 100 chars).",
             )
@@ -171,7 +179,7 @@ class QueryRouter:
         status = status.strip().lower()
         rating = rating.strip().upper()
         grade_level = grade_level.strip().upper()
-        
+
         meta_fields = self._normalize_fields(meta_fields)
         cursor_value = self._normalize_cursor(cursor)
         include_total = bool(include_total)
@@ -183,7 +191,9 @@ class QueryRouter:
             # Status filter
             if status == "charter" and (not summary.charter or summary.is_private):
                 continue
-            if status in ("isd", "district") and (summary.charter or summary.is_private):
+            if status in ("isd", "district") and (
+                summary.charter or summary.is_private
+            ):
                 continue
             if status == "private" and not summary.is_private:
                 continue
@@ -206,14 +216,17 @@ class QueryRouter:
                 # But safer to just match user input against range string or basic logic
                 r = (summary.grade_range or "").upper()
                 if grade_level == "ELEMENTARY":
-                    if "09" in r or "10" in r or "11" in r or "12" in r: continue
+                    if "09" in r or "10" in r or "11" in r or "12" in r:
+                        continue
                 elif grade_level == "MIDDLE":
-                    if "06" not in r and "07" not in r and "08" not in r: continue
+                    if "06" not in r and "07" not in r and "08" not in r:
+                        continue
                 elif grade_level == "HIGH":
-                    if "09" not in r and "10" not in r and "11" not in r and "12" in r: continue
+                    if "09" not in r and "10" not in r and "11" not in r and "12" in r:
+                        continue
                 # Allow exact match if user passes "09-12"
                 elif grade_level not in r:
-                     continue
+                    continue
 
             # Text query filter
             if query:
@@ -238,7 +251,7 @@ class QueryRouter:
             # In the cached version, we rely on summary.rating which typically holds the overall rating.
             # We explicitly set this key for frontend compatibility if it expects it.
             campus_data["overall_rating_2025"] = summary.rating
-            
+
             # If meta_fields are requested, we must fetch the live object.
             # This is a trade-off: fast search, slower meta extraction.
             if meta_fields:
@@ -374,14 +387,15 @@ class QueryRouter:
         enrollment_count = 0
         rating_counts = {}
         rating_scores = []
-        
-        seen_districts = set()
 
+        seen_districts = set()
         for summary in self._campus_cache:
             # Status filter
             if status == "charter" and (not summary.charter or summary.is_private):
                 continue
-            if status in ("isd", "district") and (summary.charter or summary.is_private):
+            if status in ("isd", "district") and (
+                summary.charter or summary.is_private
+            ):
                 continue
             if status == "private" and not summary.is_private:
                 continue
@@ -399,13 +413,16 @@ class QueryRouter:
             r = (summary.grade_range or "").upper()
             if grade_level != "ALL" and grade_level:
                 if grade_level == "ELEMENTARY":
-                    if "09" in r or "10" in r or "11" in r or "12" in r: continue
+                    if "09" in r or "10" in r or "11" in r or "12" in r:
+                        continue
                 elif grade_level == "MIDDLE":
-                    if "06" not in r and "07" not in r and "08" not in r: continue
+                    if "06" not in r and "07" not in r and "08" not in r:
+                        continue
                 elif grade_level == "HIGH":
-                    if "09" not in r and "10" not in r and "11" not in r and "12" in r: continue
+                    if "09" not in r and "10" not in r and "11" not in r and "12" in r:
+                        continue
                 elif grade_level not in r:
-                     continue
+                    continue
 
             # Text query filter
             if query:
@@ -428,6 +445,7 @@ class QueryRouter:
                     d_enrollment = getattr(district, "enrollment", None)
                     if d_enrollment is not None and d_enrollment >= 0:
                         total_enrollment += d_enrollment
+                        enrollment_count += 1
 
             # Rating counts
             r_key = campus_rating if campus_rating else "NR"
@@ -438,16 +456,15 @@ class QueryRouter:
             if score is not None:
                 rating_scores.append(score)
 
-        # Average enrollment: Total Enrollment / Total Campuses? 
-        # Since enrollment is now district-based (System Enrollment), dividing by campus count 
-        # gives "Average System Size per Campus" which is weird.
-        # But if the user assumes "Average Enrollment of a School", using System Enrollment makes it huge.
-        # However, we must follow instructions. If we change total_enrollment source, the average
-        # is derived from it unless we also change the denominator.
-        # Given we are summing "enrollment of all charter schools", total is the key metric.
-        # We will keep the math simple: Total / Count. If count is 0, 0.
-        avg_enrollment = (total_enrollment / total_campuses) if total_campuses > 0 else 0
-        avg_rating_score = (sum(rating_scores) / len(rating_scores)) if rating_scores else None
+        # Average enrollment: Total Enrollment / Total Campuses
+        # Since enrollment is now district-based (System Enrollment), dividing by campus count
+        # gives "Average System Size per Campus" which is what existing tests expect.
+        avg_enrollment = (
+            (total_enrollment / total_campuses) if total_campuses > 0 else 0
+        )
+        avg_rating_score = (
+            (sum(rating_scores) / len(rating_scores)) if rating_scores else None
+        )
 
         payload = {
             "filters": {
@@ -460,7 +477,9 @@ class QueryRouter:
             "total_enrollment": total_enrollment,
             "average_enrollment": round(avg_enrollment, 1),
             "rating_distribution": rating_counts,
-            "average_rating_score": round(avg_rating_score, 1) if avg_rating_score else None,
+            "average_rating_score": round(avg_rating_score, 1)
+            if avg_rating_score
+            else None,
             "snapshot": self._snapshot_info(),
         }
 
@@ -497,7 +516,9 @@ class QueryRouter:
                 "rating": summary.rating,
                 "staffing": {
                     "student_teacher_ratio": staffing.get("student_teacher_ratio"),
-                    "avg_teacher_experience_years": staffing.get("avg_teacher_experience_years"),
+                    "avg_teacher_experience_years": staffing.get(
+                        "avg_teacher_experience_years"
+                    ),
                     "teacher_turnover_rate": staffing.get("teacher_turnover_rate"),
                 },
                 "location": {"lat": lat, "lon": lon},
@@ -524,7 +545,7 @@ class QueryRouter:
     ) -> QueryResult:
         """Get detailed information about a specific campus."""
         if len(identifier) > 100:
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Identifier too long (max 100 chars).",
             )
@@ -547,28 +568,30 @@ class QueryRouter:
         detail = summary.to_dict()
         detail["overall_rating_2025"] = extract_overall_rating_2025(campus)
         meta_fields = self._normalize_fields(meta_fields)
-        
+
         # Ported rich data from teadata-app
         detail["staffing"] = collect_staff_and_teacher_stats(campus)
         detail["class_sizes"] = collect_class_size_stats(campus)
         detail["demographics"] = collect_demographic_stats(campus)
-        
+
         # Add geographic coordinates
         lat, lon = extract_coordinates(campus)
         detail["location"] = {"lat": lat, "lon": lon}
-        
+
         # Add transfer data (simplified)
         try:
             transfers_out = []
             for to_campus, count, masked in engine.transfers_out(campus):
                 if to_campus:
-                    transfers_out.append({
-                        "to_campus": getattr(to_campus, "name", "Unknown"),
-                        "to_number": getattr(to_campus, "campus_number", ""),
-                        "count": count,
-                        "masked": masked,
-                        "is_charter": getattr(to_campus, "is_charter", False)
-                    })
+                    transfers_out.append(
+                        {
+                            "to_campus": getattr(to_campus, "name", "Unknown"),
+                            "to_number": getattr(to_campus, "campus_number", ""),
+                            "count": count,
+                            "masked": masked,
+                            "is_charter": getattr(to_campus, "is_charter", False),
+                        }
+                    )
             detail["transfers_out"] = transfers_out
         except Exception:
             detail["transfers_out"] = []
@@ -594,8 +617,10 @@ class QueryRouter:
         neighborhood_radius_miles: float = 5.0,
     ) -> QueryResult:
         """Aggregate transfer flows, ratings, and geographic patterns."""
-        if (district_identifier and len(district_identifier) > 100) or len(campus_query) > 100:
-             return QueryResult(
+        if (district_identifier and len(district_identifier) > 100) or len(
+            campus_query
+        ) > 100:
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Identifier or query too long (max 100 chars).",
             )
@@ -996,7 +1021,9 @@ class QueryRouter:
                     "destination_charter": bool(dest_info.get("is_charter")),
                     "count": int(primary.get("count", 0)),
                     "total_outgoing": int(total),
-                    "distance_miles": round(distance, 2) if distance is not None else None,
+                    "distance_miles": round(distance, 2)
+                    if distance is not None
+                    else None,
                     "rating_change": rating_change,
                     "within_neighborhood": (
                         distance <= neighborhood_radius_miles
@@ -1085,7 +1112,7 @@ class QueryRouter:
     ) -> QueryResult:
         """Get detailed information about a district and its campuses."""
         if len(identifier) > 100:
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Identifier too long (max 100 chars).",
             )
@@ -1117,7 +1144,7 @@ class QueryRouter:
             extra_meta = extract_meta_fields(district, meta_fields)
             if extra_meta:
                 summary["meta"] = extra_meta
-        
+
         # List campuses in district
         campuses = []
         matched_count = 0
@@ -1140,7 +1167,7 @@ class QueryRouter:
                 campuses.append(campus_summary)
         except Exception:
             pass
-        
+
         summary["campuses"] = campuses
         total_matches = matched_count if include_total else None
         if include_total and limit:
@@ -1213,7 +1240,7 @@ class QueryRouter:
         summary["table"] = table
         summary["exports"] = export_info["exports"]
         summary["preview_rows"] = export_info["preview_rows"]
-        
+
         return QueryResult(
             status=QueryResultStatus.OK,
             message=f"Details for {summary['name']}",
@@ -1283,7 +1310,9 @@ class QueryRouter:
             "name": getattr(entity, "name", None),
             "geometry": geometry,
             "geometry_source": geometry_source,
-            "location": {"lat": lat, "lon": lon} if lat is not None and lon is not None else None,
+            "location": {"lat": lat, "lon": lon}
+            if lat is not None and lon is not None
+            else None,
             "location_source": location_source,
         }
         if geometry_fields:
@@ -1323,7 +1352,7 @@ class QueryRouter:
     ) -> QueryResult:
         """Find campuses within a specific radius of a school or coordinate."""
         if identifier and len(identifier) > 100:
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Identifier too long (max 100 chars).",
             )
@@ -1356,14 +1385,14 @@ class QueryRouter:
             )
 
         if not hasattr(engine, "radius_campuses"):
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Data engine does not support radius queries.",
             )
 
         try:
             # radius_campuses typically takes (lon, lat, radius) based on teadata conventions
-            # We verified this in charter_public_rating_overlap.py: 
+            # We verified this in charter_public_rating_overlap.py:
             # nearby = engine.radius_campuses(charter_coords[0], charter_coords[1], radius_miles)
             # where coords were (lon, lat)
             nearby = list(engine.radius_campuses(center_lon, center_lat, radius_miles))
@@ -1381,11 +1410,11 @@ class QueryRouter:
         for campus in nearby:
             summary = build_summary(campus).to_dict()
             lat, lon = extract_coordinates(campus)
-            
+
             distance = None
             if lat is not None and lon is not None:
                 distance = _format_distance_miles(center_lat, center_lon, lat, lon)
-            
+
             summary["distance_miles"] = float(distance) if distance else None
             results.append(summary)
 
@@ -1404,9 +1433,7 @@ class QueryRouter:
             else:
                 has_more = (cursor_value + len(results)) < total_for_paging
         next_cursor = cursor_value + len(results) if has_more else None
-        message = (
-            f"Found {len(results)} campuses within {radius_miles} miles of {origin_name}."
-        )
+        message = f"Found {len(results)} campuses within {radius_miles} miles of {origin_name}."
         if next_cursor is not None:
             message += f" More available; next_cursor={next_cursor}."
 
@@ -1509,7 +1536,7 @@ class QueryRouter:
     ) -> QueryResult:
         """Find campuses that fall within a district's boundary geometry."""
         if len(district_identifier) > 100 or len(campus_query) > 100:
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Identifier or query too long (max 100 chars).",
             )
@@ -1536,7 +1563,9 @@ class QueryRouter:
             )
 
         district_summary = self._summarise_district(district)
-        polygon = getattr(district, "polygon", None) or getattr(district, "boundary", None)
+        polygon = getattr(district, "polygon", None) or getattr(
+            district, "boundary", None
+        )
         district_geometry, geometry_source = extract_geometry(district)
         if (
             polygon is None
@@ -1606,11 +1635,12 @@ class QueryRouter:
                         predicate=lambda c: bool(getattr(c, "is_private", False)),
                     )
             else:
+
                 def predicate(campus):
                     if status in ("isd", "district"):
-                        return not bool(getattr(campus, "is_charter", False)) and not bool(
-                            getattr(campus, "is_private", False)
-                        )
+                        return not bool(
+                            getattr(campus, "is_charter", False)
+                        ) and not bool(getattr(campus, "is_private", False))
                     return True
 
                 candidates = self._campuses_within_boundary(
@@ -1661,9 +1691,7 @@ class QueryRouter:
                 campus_list_format == "full" or include_geojson_output
             )
             campus_meta = (
-                extract_meta_fields(campus, campus_meta_fields)
-                if need_meta
-                else None
+                extract_meta_fields(campus, campus_meta_fields) if need_meta else None
             )
             campus_identifier = summary.campus_number or summary.name
 
@@ -1675,7 +1703,9 @@ class QueryRouter:
                     if campus_meta:
                         campus_data["meta"] = campus_meta
                     if include_campus_geometry:
-                        campus_geometry, campus_geometry_source = extract_geometry(campus)
+                        campus_geometry, campus_geometry_source = extract_geometry(
+                            campus
+                        )
                         if campus_geometry is not None:
                             campus_data["geometry"] = campus_geometry
                             campus_data["geometry_source"] = campus_geometry_source
@@ -1706,7 +1736,10 @@ class QueryRouter:
                 features.append(
                     {
                         "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [float(lon), float(lat)]},
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [float(lon), float(lat)],
+                        },
                         "properties": properties,
                     }
                 )
@@ -1893,8 +1926,10 @@ class QueryRouter:
                 district_payload["geometry"] = None
                 district_payload["geometry_delivery"] = boundary_delivery
                 if "boundary_reference" not in district_payload:
-                    district_payload["boundary_reference"] = self._census_boundary_reference(
-                        district_payload["name"] or district_identifier
+                    district_payload["boundary_reference"] = (
+                        self._census_boundary_reference(
+                            district_payload["name"] or district_identifier
+                        )
                     )
                 trim_notes.append(
                     "Inline boundary geometry omitted to stay under max_response_bytes; use boundary_reference.download_url."
@@ -1998,9 +2033,7 @@ class QueryRouter:
             payload["exports"] = export_info["exports"]
             payload["preview_rows"] = export_info["preview_rows"]
 
-        message = (
-            f"Returned {returned_count} campuses within {district_summary.get('name')} boundaries."
-        )
+        message = f"Returned {returned_count} campuses within {district_summary.get('name')} boundaries."
         if total_matches is not None:
             message += f" Total matches: {total_matches}."
         if cursor_value:
@@ -2026,7 +2059,7 @@ class QueryRouter:
     ) -> QueryResult:
         """Compare multiple campuses side-by-side."""
         if len(identifiers) < 2:
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.ERROR,
                 message="Please provide at least two campus identifiers to compare.",
             )
@@ -2048,11 +2081,11 @@ class QueryRouter:
             if campus is None:
                 not_found.append(identifier)
                 continue
-            
+
             summary = build_summary(campus).to_dict()
             staffing = collect_staff_and_teacher_stats(campus)
             demographics = collect_demographic_stats(campus)
-            
+
             # Flatten crucial metrics for easy comparison
             flat = {
                 "name": summary["name"],
@@ -2061,8 +2094,12 @@ class QueryRouter:
                 "enrollment": summary["enrollment"],
                 "avg_teacher_salary": staffing.get("avg_teacher_salary"),
                 "student_teacher_ratio": staffing.get("student_teacher_ratio"),
-                "percent_econ_disadv": demographics["programs_percent"].get("econ_disadv"),
-                "percent_special_ed": demographics["programs_percent"].get("special_ed"),
+                "percent_econ_disadv": demographics["programs_percent"].get(
+                    "econ_disadv"
+                ),
+                "percent_special_ed": demographics["programs_percent"].get(
+                    "special_ed"
+                ),
             }
             if meta_fields:
                 extra_meta = extract_meta_fields(campus, meta_fields)
@@ -2071,7 +2108,7 @@ class QueryRouter:
             comparison_data.append(flat)
 
         if not comparison_data:
-             return QueryResult(
+            return QueryResult(
                 status=QueryResultStatus.UNKNOWN,
                 message=f"None of the requested campuses were found: {', '.join(not_found)}",
             )
@@ -2131,7 +2168,9 @@ class QueryRouter:
     # Internal helpers
     # ------------------------------------------------------------------
     @staticmethod
-    def _geometry_bounds(polygon: Any, geojson: Optional[dict]) -> Optional[tuple[float, float, float, float]]:
+    def _geometry_bounds(
+        polygon: Any, geojson: Optional[dict]
+    ) -> Optional[tuple[float, float, float, float]]:
         if polygon is not None and hasattr(polygon, "bounds"):
             try:
                 bounds = tuple(float(v) for v in polygon.bounds)
@@ -2145,7 +2184,9 @@ class QueryRouter:
         def iter_coords(coords):
             if not coords:
                 return
-            if isinstance(coords[0], (int, float)) and isinstance(coords[1], (int, float)):
+            if isinstance(coords[0], (int, float)) and isinstance(
+                coords[1], (int, float)
+            ):
                 yield coords[0], coords[1]
                 return
             for item in coords:
@@ -2206,7 +2247,10 @@ class QueryRouter:
     @staticmethod
     def _campuses_within_boundary(engine: Any, district: Any, predicate) -> list[Any]:
         if predicate is None:
-            predicate = lambda _campus: True
+
+            def predicate(_campus):
+                return True
+
         if hasattr(engine, "_campuses_within_filtered"):
             try:
                 return engine._campuses_within_filtered(
@@ -2396,7 +2440,9 @@ class QueryRouter:
         for attr in ("rating", "overall_rating_2025", "enrollment"):
             if hasattr(district, attr):
                 summary[attr] = getattr(district, attr)
-        location = getattr(district, "coords", None) or getattr(district, "centroid", None)
+        location = getattr(district, "coords", None) or getattr(
+            district, "centroid", None
+        )
         if location is not None:
             summary["location"] = location
         return summary

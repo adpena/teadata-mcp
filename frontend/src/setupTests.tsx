@@ -1,6 +1,30 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
-import React from 'react';
+
+// JSDOM + newer Node runtimes can expose a partial/experimental Web Storage API.
+// For tests, we need a predictable localStorage implementation.
+if (typeof window !== 'undefined') {
+  const existing = (window as any).localStorage;
+  if (!existing || typeof existing.getItem !== 'function') {
+    let store: Record<string, string> = {};
+    const localStorageMock = {
+      getItem: (key: string) => (key in store ? store[key] : null),
+      setItem: (key: string, value: string) => {
+        store[key] = String(value);
+      },
+      removeItem: (key: string) => {
+        delete store[key];
+      },
+      clear: () => {
+        store = {};
+      },
+    };
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      configurable: true,
+    });
+  }
+}
 
 // Mock OpenAI Apps SDK UI components
 vi.mock('@openai/apps-sdk-ui/components/Button', () => ({

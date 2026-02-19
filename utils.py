@@ -1,9 +1,22 @@
 from pathlib import Path
 import shutil
-import os
 
-SKIP_DIRS = {".git", ".hg", ".svn", "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache", ".idea", ".vscode", ".venv", "venv", "node_modules"}
+SKIP_DIRS = {
+    ".git",
+    ".hg",
+    ".svn",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".idea",
+    ".vscode",
+    ".venv",
+    "venv",
+    "node_modules",
+}
 SKIP_FILES = {".DS_Store"}
+
 
 def _ignore_filter(dirpath, names):
     # Ignore VCS/system dirs and transient caches anywhere in the tree
@@ -15,10 +28,12 @@ def _ignore_filter(dirpath, names):
             ignored.append(n)
     return ignored
 
+
 TEADATA_GITHUB_URL = "https://github.com/adpena/teadata.git"
 
 TEADATA_REPO = "/Users/adpena/PycharmProjects/teadata"
 KNOWLEDGE = "/Users/adpena/PycharmProjects/teadata-mcp/knowledge"
+
 
 def copy_repo_to_knowledge(nest=True, purge_git=True):
     """
@@ -43,16 +58,18 @@ def copy_repo_to_knowledge(nest=True, purge_git=True):
             continue  # skip .git, venvs, caches, etc.
         target = dst / item.name
         if item.is_dir():
-            shutil.copytree(item, target, symlinks=True, ignore=_ignore_filter, dirs_exist_ok=True)
+            shutil.copytree(
+                item, target, symlinks=True, ignore=_ignore_filter, dirs_exist_ok=True
+            )
         else:
-            if item.name in SKIP_FILES or item.suffix in {'.pyc', '.pyo'}:
+            if item.name in SKIP_FILES or item.suffix in {".pyc", ".pyo"}:
                 continue
             shutil.copy2(item, target)
 
     # Safety: ensure no embedded repos landed in the destination
     if purge_git:
         removed = 0
-        for gitdir in dst.rglob('.git'):
+        for gitdir in dst.rglob(".git"):
             try:
                 shutil.rmtree(gitdir)
                 removed += 1
@@ -63,6 +80,9 @@ def copy_repo_to_knowledge(nest=True, purge_git=True):
 
     print(f"Copied from {src} -> {dst}")
 
+
 # Example:
-copy_repo_to_knowledge(nest=True)   # copies into knowledge/teadata without any embedded Git repos
+copy_repo_to_knowledge(
+    nest=True
+)  # copies into knowledge/teadata without any embedded Git repos
 # copy_repo_to_knowledge(nest=False)  # copies contents into knowledge/

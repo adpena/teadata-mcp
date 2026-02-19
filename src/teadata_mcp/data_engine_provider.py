@@ -5,6 +5,7 @@ obtain a ready-to-use ``DataEngine``.  Keeping it in a dedicated module helps
 LLMs reason about where the heavy lifting happens and makes the logic easy to
 unit test without touching the real dataset.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -38,7 +39,9 @@ class DataEngineProvider:
     config: ServerConfig
     _engine: Optional[Any] = None
     _load_error: Optional[Exception] = None
-    _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
+    _lock: threading.Lock = field(
+        default_factory=threading.Lock, init=False, repr=False
+    )
 
     def ensure_loaded(self) -> Any:
         """Return a fully initialised :class:`teadata.DataEngine` instance.
@@ -58,13 +61,17 @@ class DataEngineProvider:
         if self._engine is not None:
             return self._engine
         if self._load_error is not None:
-            raise DataEngineLoadError("Data engine failed to load") from self._load_error
+            raise DataEngineLoadError(
+                "Data engine failed to load"
+            ) from self._load_error
 
         with self._lock:
             if self._engine is not None:
                 return self._engine
             if self._load_error is not None:
-                raise DataEngineLoadError("Data engine failed to load") from self._load_error
+                raise DataEngineLoadError(
+                    "Data engine failed to load"
+                ) from self._load_error
 
             started = time.perf_counter()
             snapshot_path = None
@@ -88,7 +95,9 @@ class DataEngineProvider:
                         "engine_tuning": self.config.engine_tuning,
                     },
                 )
-                raise DataEngineLoadError("Unable to initialise the TEA Data engine") from exc
+                raise DataEngineLoadError(
+                    "Unable to initialise the TEA Data engine"
+                ) from exc
 
             duration_ms = (time.perf_counter() - started) * 1000
             self._engine = engine
@@ -122,15 +131,54 @@ class DataEngineProvider:
                 "teadata is not installed. Run `uv sync` to install dependencies."
             ) from exc
 
+        def _is_lfs_pointer_error(exc: BaseException) -> bool:
+            message = str(exc).lower()
+            return "git-lfs pointer" in message or "lfs pointer" in message
+
+        def _empty_engine_fallback() -> Any:
+            # Some teadata releases ship a snapshot placeholder (git-lfs pointer). When that
+            # happens, treat it as "no snapshot available" so the server can still start.
+            try:
+                return DataEngine.from_snapshot(
+                    search=False,
+                    **self._snapshot_kwargs(DataEngine),
+                )
+            except Exception:
+                return DataEngine(**self._init_kwargs(DataEngine))
+
         snapshot_path = self.config.resolve_snapshot_path()
         if snapshot_path is not None:
-            engine = DataEngine(snapshot=str(snapshot_path), **self._init_kwargs(DataEngine))
+            try:
+                engine = DataEngine(
+                    snapshot=str(snapshot_path), **self._init_kwargs(DataEngine)
+                )
+            except Exception as exc:
+                if _is_lfs_pointer_error(exc):
+                    logger.warning(
+                        "Snapshot is a git-lfs pointer; starting with an empty engine. "
+                        "Set TEADATA_SNAPSHOT_URL or TEADATA_SNAPSHOT to a real snapshot to enable data.",
+                        extra={"snapshot_path": str(snapshot_path)},
+                    )
+                    engine = _empty_engine_fallback()
+                else:
+                    raise
             return self._tune_engine(engine)
         if self.config.load_snapshot:
-            engine = DataEngine.from_snapshot(
-                search=self.config.snapshot_search,
-                **self._snapshot_kwargs(DataEngine),
-            )
+            try:
+                engine = DataEngine.from_snapshot(
+                    search=self.config.snapshot_search,
+                    **self._snapshot_kwargs(DataEngine),
+                )
+            except Exception as exc:
+                if _is_lfs_pointer_error(exc):
+                    logger.warning(
+                        "Snapshot discovery resolved to a git-lfs pointer; starting with an empty engine. "
+                        "Set TEADATA_SNAPSHOT_URL to a real snapshot asset URL to enable data.",
+                        extra={"snapshot_search": self.config.snapshot_search},
+                    )
+                    engine = _empty_engine_fallback()
+                else:
+                    raise
             return self._tune_engine(engine)
         engine = DataEngine(**self._init_kwargs(DataEngine))
         return self._tune_engine(engine)
@@ -140,7 +188,7 @@ class DataEngineProvider:
         if self.config.engine_eager_indexing:
             eager_kwarg = self._first_supported_kwarg(
                 engine_type,
-                ("eager_indexing", "eager_index", "eager"),
+                ("eager_indexes", "eager_indexing", "eager_index", "eager"),
             )
             if eager_kwarg:
                 kwargs[eager_kwarg] = True
@@ -151,14 +199,16 @@ class DataEngineProvider:
         if self.config.engine_eager_indexing:
             eager_kwarg = self._first_supported_kwarg(
                 getattr(engine_type, "from_snapshot", engine_type),
-                ("eager_indexing", "eager_index", "eager"),
+                ("eager_indexes", "eager_indexing", "eager_index", "eager"),
             )
             if eager_kwarg:
                 kwargs[eager_kwarg] = True
         return kwargs
 
     @staticmethod
-    def _first_supported_kwarg(callable_obj: Any, names: tuple[str, ...]) -> Optional[str]:
+    def _first_supported_kwarg(
+        callable_obj: Any, names: tuple[str, ...]
+    ) -> Optional[str]:
         for name in names:
             if DataEngineProvider._supports_kwarg(callable_obj, name):
                 return name
@@ -182,10 +232,14 @@ class DataEngineProvider:
         except (TypeError, ValueError):
             return False
         for param in sig.parameters.values():
-            if param.kind in (
-                inspect.Parameter.POSITIONAL_ONLY,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            ) and param.default is inspect._empty:
+            if (
+                param.kind
+                in (
+                    inspect.Parameter.POSITIONAL_ONLY,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                )
+                and param.default is inspect._empty
+            ):
                 return False
         return True
 

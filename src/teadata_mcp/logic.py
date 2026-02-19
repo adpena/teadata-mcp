@@ -1,4 +1,5 @@
 """Business logic for processing TEA data, ported from teadata-app."""
+
 from __future__ import annotations
 
 import re
@@ -7,7 +8,7 @@ from dataclasses import dataclass
 from typing import Optional, Iterable, Any
 
 # teadata imports
-from teadata.classes import haversine_miles, coerce_grade_spans
+from teadata.classes import haversine_miles
 from teadata.geometry import point_xy, district_centroid_xy
 
 
@@ -158,7 +159,7 @@ def iter_campuses(repo) -> Iterable:
     if callable(values):
         try:
             return values()
-        except TypeError: 
+        except TypeError:
             pass
     return campuses_view
 
@@ -283,7 +284,9 @@ def collect_staff_and_teacher_stats(campus) -> dict[str, Any]:
     if turnover_value is None:
         for key, value in meta.items():
             key_text = str(key).lower()
-            if "turnover" in key_text and ("teacher" in key_text or "staff_teacher" in key_text):
+            if "turnover" in key_text and (
+                "teacher" in key_text or "staff_teacher" in key_text
+            ):
                 turnover_value = value
                 if turnover_value is not None:
                     break
@@ -296,20 +299,42 @@ def collect_class_size_stats(campus) -> dict[str, Any]:
     meta = getattr(campus, "meta", {}) or {}
     return {
         "elementary": {
-            "kindergarten": _sanitize_value(meta.get("campus_2025_class_size_kindergarten_avg_size")),
-            "grade_1": _sanitize_value(meta.get("campus_2025_class_size_grade_1_avg_size")),
-            "grade_2": _sanitize_value(meta.get("campus_2025_class_size_grade_2_avg_size")),
-            "grade_3": _sanitize_value(meta.get("campus_2025_class_size_grade_3_avg_size")),
-            "grade_4": _sanitize_value(meta.get("campus_2025_class_size_grade_4_avg_size")),
-            "grade_5": _sanitize_value(meta.get("campus_2025_class_size_grade_5_avg_size")),
-            "grade_6": _sanitize_value(meta.get("campus_2025_class_size_grade_6_avg_size")),
+            "kindergarten": _sanitize_value(
+                meta.get("campus_2025_class_size_kindergarten_avg_size")
+            ),
+            "grade_1": _sanitize_value(
+                meta.get("campus_2025_class_size_grade_1_avg_size")
+            ),
+            "grade_2": _sanitize_value(
+                meta.get("campus_2025_class_size_grade_2_avg_size")
+            ),
+            "grade_3": _sanitize_value(
+                meta.get("campus_2025_class_size_grade_3_avg_size")
+            ),
+            "grade_4": _sanitize_value(
+                meta.get("campus_2025_class_size_grade_4_avg_size")
+            ),
+            "grade_5": _sanitize_value(
+                meta.get("campus_2025_class_size_grade_5_avg_size")
+            ),
+            "grade_6": _sanitize_value(
+                meta.get("campus_2025_class_size_grade_6_avg_size")
+            ),
         },
         "secondary": {
-            "english": _sanitize_value(meta.get("campus_2025_class_size_sec_english_avg_size")),
-            "math": _sanitize_value(meta.get("campus_2025_class_size_sec_math_avg_size")),
-            "science": _sanitize_value(meta.get("campus_2025_class_size_sec_sci_avg_size")),
-            "social_studies": _sanitize_value(meta.get("campus_2025_class_size_sec_soc_stud_avg_size")),
-        }
+            "english": _sanitize_value(
+                meta.get("campus_2025_class_size_sec_english_avg_size")
+            ),
+            "math": _sanitize_value(
+                meta.get("campus_2025_class_size_sec_math_avg_size")
+            ),
+            "science": _sanitize_value(
+                meta.get("campus_2025_class_size_sec_sci_avg_size")
+            ),
+            "social_studies": _sanitize_value(
+                meta.get("campus_2025_class_size_sec_soc_stud_avg_size")
+            ),
+        },
     }
 
 
@@ -317,19 +342,41 @@ def collect_demographic_stats(campus) -> dict[str, Any]:
     meta = getattr(campus, "meta", {}) or {}
     return {
         "ethnicity_percent": {
-            "african_american": _sanitize_value(meta.get("campus_2025_student_enrollment_african_american_percent")),
-            "hispanic": _sanitize_value(meta.get("campus_2025_student_enrollment_hispanic_percent")),
-            "white": _sanitize_value(meta.get("campus_2025_student_enrollment_white_percent")),
-            "asian": _sanitize_value(meta.get("campus_2025_student_enrollment_asian_percent")),
-            "pacific_islander": _sanitize_value(meta.get("campus_2025_student_enrollment_pacific_islander_percent")),
-            "two_or_more": _sanitize_value(meta.get("campus_2025_student_enrollment_two_or_more_races_percent")),
+            "african_american": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_african_american_percent")
+            ),
+            "hispanic": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_hispanic_percent")
+            ),
+            "white": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_white_percent")
+            ),
+            "asian": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_asian_percent")
+            ),
+            "pacific_islander": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_pacific_islander_percent")
+            ),
+            "two_or_more": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_two_or_more_races_percent")
+            ),
         },
         "programs_percent": {
-            "special_ed": _sanitize_value(meta.get("campus_2025_student_enrollment_special_ed_percent")),
-            "econ_disadv": _sanitize_value(meta.get("campus_2025_student_enrollment_economically_disadvantaged_percent")),
-            "emergent_bilingual": _sanitize_value(meta.get("campus_2025_student_enrollment_english_learner_percent")),
-            "immigrant": _sanitize_value(meta.get("campus_2025_student_enrollment_immigrant_percent")),
-        }
+            "special_ed": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_special_ed_percent")
+            ),
+            "econ_disadv": _sanitize_value(
+                meta.get(
+                    "campus_2025_student_enrollment_economically_disadvantaged_percent"
+                )
+            ),
+            "emergent_bilingual": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_english_learner_percent")
+            ),
+            "immigrant": _sanitize_value(
+                meta.get("campus_2025_student_enrollment_immigrant_percent")
+            ),
+        },
     }
 
 
@@ -403,7 +450,9 @@ def _geometry_to_geojson(value: Any) -> Optional[dict]:
     return None
 
 
-def _point_xy_from_entity(entity: Any) -> tuple[Optional[float], Optional[float], Optional[str]]:
+def _point_xy_from_entity(
+    entity: Any,
+) -> tuple[Optional[float], Optional[float], Optional[str]]:
     for attr in ("point", "location", "coords"):
         if hasattr(entity, attr):
             try:
@@ -416,7 +465,9 @@ def _point_xy_from_entity(entity: Any) -> tuple[Optional[float], Optional[float]
     return None, None, None
 
 
-def extract_location(entity: Any) -> tuple[Optional[float], Optional[float], Optional[str]]:
+def extract_location(
+    entity: Any,
+) -> tuple[Optional[float], Optional[float], Optional[str]]:
     lon, lat, source = _point_xy_from_entity(entity)
     if lon is not None and lat is not None:
         return lat, lon, source

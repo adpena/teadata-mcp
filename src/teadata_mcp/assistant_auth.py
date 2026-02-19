@@ -126,13 +126,17 @@ class AssistantAuthConfig:
 
         return cls(
             enforce=enforce,
-            cookie_name=os.getenv("TEADATA_ASSISTANT_COOKIE_NAME", "teadata_assistant_sso"),
+            cookie_name=os.getenv(
+                "TEADATA_ASSISTANT_COOKIE_NAME", "teadata_assistant_sso"
+            ),
             secret=secret,
             launch_url=os.getenv(
                 "TEADATA_ASSISTANT_LAUNCH_URL",
                 "https://dataforpubliceducation.com/assistant/launch/",
             ),
-            clock_skew_seconds=int(os.getenv("TEADATA_ASSISTANT_SSO_SKEW_SECONDS", "60")),
+            clock_skew_seconds=int(
+                os.getenv("TEADATA_ASSISTANT_SSO_SKEW_SECONDS", "60")
+            ),
         )
 
 

@@ -23,5 +23,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.tsx',
+    // Avoid spawning Node subprocesses for the test pool (Node 25 currently emits
+    // noisy `--localstorage-file` warnings in forked workers in some environments).
+    pool: 'threads',
   }
 })

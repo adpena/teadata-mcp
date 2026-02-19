@@ -199,6 +199,9 @@ config.local.yaml
 config.yaml
 config.toml
 
+# Frontend test runtime files
+frontend/.vitest-localstorage.json
+
 # If you publish starter templates, do not ignore those:
 # config.example.yaml
 # config.template.yaml

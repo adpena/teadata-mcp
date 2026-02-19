@@ -41,8 +41,10 @@ This will:
 3.  Start the `uvicorn` server (default port `8000`; auto-selects the next available port if in use).
 
 The server exposes:
-- **MCP SSE Endpoint**: `http://localhost:<port>/sse`
-- **Messages Endpoint**: `http://localhost:<port>/messages`
+- **MCP Streamable HTTP Endpoint (Recommended)**: `http://localhost:<port>/mcp`
+- **MCP WebSocket Endpoint (Optional)**: `ws://localhost:<port>/ws`
+- **Legacy MCP SSE Endpoint**: `http://localhost:<port>/sse`
+- **Legacy Messages Endpoint**: `http://localhost:<port>/messages`
 - **Frontend UI**: `http://localhost:<port>/`
 
 ## Manual Setup
@@ -73,6 +75,7 @@ This project is configured for deployment to [Render](https://render.com/).
 1.  **Dockerfile**: A `Dockerfile` is included that builds the environment and runs the server with `uvicorn`.
 2.  **Environment Variables**:
     - `TEADATA_SNAPSHOT` (Optional): Path to a pre-loaded snapshot file if you want to avoid rebuilding the data engine on startup.
+    - `TEADATA_SNAPSHOT_URL` (Optional): URL to a real snapshot asset (useful when the packaged snapshot is a git-lfs pointer).
     - `TEADATA_MAX_RESPONSE_BYTES` (Optional): Soft cap for list-heavy responses (default 24000; set 0 to disable).
     - `PORT`: Automatically set by Render (defaults to 10000).
 

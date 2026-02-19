@@ -4,6 +4,7 @@ Streamable HTTP Server Entry Point
 This module provides the ASGI application for running the MCP server over Streamable HTTP.
 It is the modern March 2025 standard for MCP.
 """
+
 import os
 import json
 import uuid
@@ -40,6 +41,7 @@ logger = logging.getLogger(__name__)
 # Initialize the transport globally
 transport = StreamableHTTPServerTransport(mcp_session_id=str(uuid.uuid4()))
 
+
 # Setup rate limiter
 def _rate_limit_key(request: Request) -> str:
     user = getattr(request.state, "assistant_user", None)
@@ -50,6 +52,7 @@ def _rate_limit_key(request: Request) -> str:
 
 
 limiter = Limiter(key_func=_rate_limit_key)
+
 
 @asynccontextmanager
 async def lifespan(app: Starlette):
@@ -82,7 +85,7 @@ async def lifespan(app: Starlette):
         logger.info("Data engine warm-up complete", extra={"ms": round(duration_ms, 1)})
 
     mcp_app = await build_app(config, engine_provider=engine_provider)
-    
+
     async def run_mcp_logic():
         try:
             async with transport.connect() as streams:
@@ -91,7 +94,7 @@ async def lifespan(app: Starlette):
                 )
         except asyncio.CancelledError:
             pass
-        except Exception as e:
+        except Exception:
             logger.exception("MCP background task crashed")
 
     task = asyncio.create_task(run_mcp_logic())
@@ -102,10 +105,12 @@ async def lifespan(app: Starlette):
     except asyncio.CancelledError:
         pass
 
+
 async def handle_mcp_request(scope, receive, send):
     """
     Raw ASGI handler for Streamable HTTP.
     """
+
     async def cloudflare_optimized_send(message):
         if message["type"] == "http.response.start":
             headers = list(message.get("headers", []))
@@ -119,7 +124,7 @@ async def handle_mcp_request(scope, receive, send):
     new_headers = []
     has_accept = False
     has_content_type = False
-    
+
     for k, v in scope.get("headers", []):
         kl = k.lower()
         if kl == b"accept":
@@ -131,12 +136,12 @@ async def handle_mcp_request(scope, receive, send):
             has_content_type = True
         else:
             new_headers.append((k, v))
-            
+
     if not has_accept:
         new_headers.append((b"accept", b"application/json, text/event-stream"))
     if not has_content_type:
         new_headers.append((b"content-type", b"application/json"))
-        
+
     scope["headers"] = new_headers
 
     await transport.handle_request(scope, receive, cloudflare_optimized_send)
@@ -146,39 +151,89 @@ class MCPRequestHandler:
     async def __call__(self, scope, receive, send):
         await handle_mcp_request(scope, receive, send)
 
-async def handle_ws(websocket):
-    auth_config = AssistantAuthConfig.from_env()
-    if auth_config.enforce:
-        user = authenticate_from_headers(
-            list(websocket.scope.get("headers", [])),
-            config=auth_config,
-        )
-        if user is None:
-            await websocket.close(code=4401)
-            return
-        websocket.scope.setdefault("state", {})["assistant_user"] = user
 
-    starlette_app = getattr(websocket, "app", None)
-    config = (
-        starlette_app.state.config
-        if starlette_app is not None and hasattr(starlette_app.state, "config")
-        else ServerConfig()
-    )
-    engine_provider = (
-        starlette_app.state.engine_provider
-        if starlette_app is not None and hasattr(starlette_app.state, "engine_provider")
-        else None
-    )
-    mcp_app = await build_app(config, engine_provider=engine_provider)
-    async with websocket_server(websocket.scope, websocket.receive, websocket._send) as streams:
-        await mcp_app.run(streams[0], streams[1], mcp_app.create_initialization_options())
+def _parse_offered_subprotocols(headers: list[tuple[bytes, bytes]]) -> set[str]:
+    offered: set[str] = set()
+    for k, v in headers:
+        if k.lower() != b"sec-websocket-protocol":
+            continue
+        try:
+            raw = v.decode("latin-1")
+        except Exception:
+            raw = ""
+        for item in raw.split(","):
+            token = item.strip()
+            if token:
+                offered.add(token)
+    return offered
+
+
+class MCPWebSocketHandler:
+    async def __call__(self, scope, receive, send):
+        headers: list[tuple[bytes, bytes]] = list(scope.get("headers", []))
+
+        auth_config = AssistantAuthConfig.from_env()
+        if auth_config.enforce:
+            user = authenticate_from_headers(headers, config=auth_config)
+            if user is None:
+                # Deny quickly without starting the MCP runtime.
+                # Some ASGI servers expect the connect event to be consumed first.
+                try:
+                    msg = await receive()
+                    if msg.get("type") != "websocket.connect":
+                        pass
+                except Exception:
+                    pass
+                await send({"type": "websocket.close", "code": 4401, "reason": ""})
+                return
+
+        offered = _parse_offered_subprotocols(headers)
+        allow_mcp_subprotocol = "mcp" in {p.lower() for p in offered} if offered else False
+
+        async def send_with_subprotocol_shim(message):
+            # The upstream transport always tries to accept with subprotocol="mcp".
+            # Only echo it back if the client actually offered it.
+            if message.get("type") == "websocket.accept" and not allow_mcp_subprotocol:
+                message = dict(message)
+                message.pop("subprotocol", None)
+            await send(message)
+
+        starlette_app = scope.get("app")
+        config = (
+            starlette_app.state.config
+            if starlette_app is not None and hasattr(starlette_app.state, "config")
+            else ServerConfig()
+        )
+        engine_provider = (
+            starlette_app.state.engine_provider
+            if starlette_app is not None and hasattr(starlette_app.state, "engine_provider")
+            else None
+        )
+
+        client = scope.get("client")
+        client_addr = f"{client[0]}:{client[1]}" if client else "unknown"
+        logger.info("ws.connect", extra={"client": client_addr})
+
+        mcp_app = await build_app(config, engine_provider=engine_provider)
+        try:
+            async with websocket_server(scope, receive, send_with_subprotocol_shim) as streams:
+                await mcp_app.run(
+                    streams[0], streams[1], mcp_app.create_initialization_options()
+                )
+        except Exception:
+            # Disconnects may bubble up differently depending on server/runtime.
+            logger.exception("ws.session_failed", extra={"client": client_addr})
+            raise
+        finally:
+            logger.info("ws.disconnect", extra={"client": client_addr})
+
 
 @limiter.limit("100/minute")
 async def handle_tool(request: Request):
     tool_name = request.path_params["tool_name"]
     try:
         arguments = await request.json()
-    except:
+    except Exception:
         arguments = {}
 
     router = (
@@ -272,9 +327,7 @@ async def handle_tool(request: Request):
                 campus_query=arguments.get("campus_query", ""),
                 status=arguments.get("status", "all"),
                 limit=arguments.get("limit", 100),
-                include_campus_geometry=arguments.get(
-                    "include_campus_geometry", False
-                ),
+                include_campus_geometry=arguments.get("include_campus_geometry", False),
                 include_geojson=arguments.get("include_geojson", True),
                 boundary_delivery=arguments.get("boundary_delivery", "reference"),
                 response_profile=arguments.get("response_profile", "map"),
@@ -290,9 +343,7 @@ async def handle_tool(request: Request):
                 campus_query=arguments.get("campus_query", ""),
                 status="charter",
                 limit=arguments.get("limit", 100),
-                include_campus_geometry=arguments.get(
-                    "include_campus_geometry", False
-                ),
+                include_campus_geometry=arguments.get("include_campus_geometry", False),
                 include_geojson=arguments.get("include_geojson", True),
                 boundary_delivery=arguments.get("boundary_delivery", "reference"),
                 response_profile=arguments.get("response_profile", "map"),
@@ -308,9 +359,7 @@ async def handle_tool(request: Request):
                 campus_query=arguments.get("campus_query", ""),
                 status=arguments.get("status", "all"),
                 limit=arguments.get("limit", 100),
-                include_campus_geometry=arguments.get(
-                    "include_campus_geometry", False
-                ),
+                include_campus_geometry=arguments.get("include_campus_geometry", False),
                 include_geojson=arguments.get("include_geojson", True),
                 boundary_delivery=arguments.get("boundary_delivery", "reference"),
                 response_profile=arguments.get("response_profile", "map"),
@@ -326,9 +375,7 @@ async def handle_tool(request: Request):
                 campus_query=arguments.get("campus_query", ""),
                 status="charter",
                 limit=arguments.get("limit", 100),
-                include_campus_geometry=arguments.get(
-                    "include_campus_geometry", False
-                ),
+                include_campus_geometry=arguments.get("include_campus_geometry", False),
                 include_geojson=arguments.get("include_geojson", True),
                 boundary_delivery=arguments.get("boundary_delivery", "reference"),
                 response_profile=arguments.get("response_profile", "map"),
@@ -366,7 +413,9 @@ async def handle_tool(request: Request):
     finish_perf_timer(
         perf_timer,
         payload=result.payload,
-        status=result.status.value if hasattr(result.status, "value") else str(result.status),
+        status=result.status.value
+        if hasattr(result.status, "value")
+        else str(result.status),
     )
     duration_ms = (time.perf_counter() - started) * 1000
     tool_logger.info(
@@ -386,8 +435,10 @@ async def handle_tool(request: Request):
         media_type="application/json",
     )
 
+
 async def healthz(request: Request):
     return JSONResponse({"ok": True})
+
 
 async def homepage(request):
     index_file = Path("static_dist/index.html")
@@ -395,22 +446,25 @@ async def homepage(request):
         return Response("index.html not found in static_dist/", status_code=404)
     return FileResponse(index_file)
 
-# We use explicit Route objects with the ASGI app to ensure Starlette 
+
+# We use explicit Route objects with the ASGI app to ensure Starlette
 # passes the correct methods (GET, POST, DELETE) through to handle_mcp_request.
 _mcp_handler = MCPRequestHandler()
+_ws_handler = MCPWebSocketHandler()
 routes = [
     Route("/healthz", endpoint=healthz, methods=["GET"]),
     Route("/mcp", endpoint=_mcp_handler, methods=["GET", "POST", "DELETE"]),
     Route("/sse", endpoint=_mcp_handler, methods=["GET", "POST"]),
     Route("/messages", endpoint=_mcp_handler, methods=["POST"]),
-    
-    WebSocketRoute("/ws", endpoint=handle_ws),
+    WebSocketRoute("/ws", endpoint=_ws_handler),
     Route("/api/tool/{tool_name}", endpoint=handle_tool, methods=["POST"]),
 ]
 
 static_dir = Path("static_dist")
 if static_dir.exists():
-    routes.append(Mount("/assets", app=StaticFiles(directory="static_dist/assets"), name="assets"))
+    routes.append(
+        Mount("/assets", app=StaticFiles(directory="static_dist/assets"), name="assets")
+    )
     routes.append(Route("/", endpoint=homepage))
     routes.append(Route("/{path:path}", endpoint=homepage))
 

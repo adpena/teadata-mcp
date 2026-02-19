@@ -5,6 +5,7 @@ The configuration layer is intentionally explicit so that automated clients
 required to stand up a server instance.  Every field is documented with the
 assumptions made during scaffolding.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -90,11 +91,21 @@ class ServerConfig:
 
         env_eager = os.getenv("TEADATA_EAGER_INDEXING")
         if env_eager is not None:
-            self.engine_eager_indexing = env_eager.strip().lower() in {"1", "true", "yes", "on"}
+            self.engine_eager_indexing = env_eager.strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
 
         env_tuning = os.getenv("TEADATA_ENGINE_TUNING")
         if env_tuning is not None:
-            self.engine_tuning = env_tuning.strip().lower() in {"1", "true", "yes", "on"}
+            self.engine_tuning = env_tuning.strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
 
         env_methods = os.getenv("TEADATA_ENGINE_TUNING_METHODS")
         if env_methods:

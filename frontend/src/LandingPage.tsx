@@ -1,7 +1,6 @@
-import React from 'react';
 import { SearchTool } from './SearchTool';
 import { Button } from '@openai/apps-sdk-ui/components/Button';
-import { BarChart3, ArrowRightLeft, Search, MapPin, Building2, ArrowLeftRight, HelpCircle } from 'lucide-react';
+import { BarChart3, ArrowRightLeft, MapPin, Building2, ArrowLeftRight, HelpCircle } from 'lucide-react';
 import { ResultSkeleton } from './components/Skeleton';
 
 interface LandingPageProps {

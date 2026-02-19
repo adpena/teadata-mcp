@@ -1,4 +1,5 @@
 """Unit tests for the MCP router aggregation logic."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ from teadata_mcp.config import ServerConfig
 from teadata_mcp.data_engine_provider import DataEngineProvider
 from teadata_mcp.query_models import QueryResultStatus
 from teadata_mcp.router import QueryRouter
+
 
 @dataclass
 class _FakeCampus:
@@ -20,19 +22,49 @@ class _FakeCampus:
     enrollment: int = 100
     rating: str = "A"
 
+
 def _provider_with(fake_engine: MagicMock) -> DataEngineProvider:
     config = ServerConfig(engine_factory=lambda: fake_engine)
     return DataEngineProvider(config)
+
 
 @patch("teadata_mcp.router.find_district")
 @patch("teadata_mcp.router.iter_campuses")
 @patch("teadata_mcp.router.build_summary")
 def test_get_campus_aggregates_stats(mock_build, mock_iter, mock_find_district):
     # Setup test data
-    c1 = _FakeCampus(name="Charter A", campus_number="1", district_number="D1", is_charter=True, enrollment=100, rating="A")
-    c2 = _FakeCampus(name="Charter B", campus_number="2", district_number="D1", is_charter=True, enrollment=200, rating="B")
-    c3 = _FakeCampus(name="ISD C", campus_number="3", district_number="D2", is_charter=False, enrollment=300, rating="C")
-    c4 = _FakeCampus(name="Private D", campus_number="4", district_number="D3", is_private=True, enrollment=50, rating="NR")
+    c1 = _FakeCampus(
+        name="Charter A",
+        campus_number="1",
+        district_number="D1",
+        is_charter=True,
+        enrollment=100,
+        rating="A",
+    )
+    c2 = _FakeCampus(
+        name="Charter B",
+        campus_number="2",
+        district_number="D1",
+        is_charter=True,
+        enrollment=200,
+        rating="B",
+    )
+    c3 = _FakeCampus(
+        name="ISD C",
+        campus_number="3",
+        district_number="D2",
+        is_charter=False,
+        enrollment=300,
+        rating="C",
+    )
+    c4 = _FakeCampus(
+        name="Private D",
+        campus_number="4",
+        district_number="D3",
+        is_private=True,
+        enrollment=50,
+        rating="NR",
+    )
 
     mock_iter.return_value = [c1, c2, c3, c4]
 
@@ -47,16 +79,18 @@ def test_get_campus_aggregates_stats(mock_build, mock_iter, mock_find_district):
         m.enrollment = campus.enrollment
         m.rating = campus.rating
         m.grade_range = campus.grade_range
-        m.district_slug = campus.district_number # slug is D1, D2 etc in this fake setup
+        m.district_slug = (
+            campus.district_number
+        )  # slug is D1, D2 etc in this fake setup
         return m
-    
+
     mock_build.side_effect = _mock_summary
 
     # Mock find_district to return district objects with distinct enrollment
     # District D1 (Charter): Campuses have 100+200=300. District has 350.
     # District D2 (ISD): Campus has 300. District has 300.
     # District D3 (Private): Campus has 50. District has -1 (should be ignored).
-    
+
     d1 = MagicMock()
     d1.enrollment = 350
     d2 = MagicMock()
@@ -65,11 +99,14 @@ def test_get_campus_aggregates_stats(mock_build, mock_iter, mock_find_district):
     d3.enrollment = -1
 
     def _mock_find(engine, slug):
-        if slug == "D1": return d1
-        if slug == "D2": return d2
-        if slug == "D3": return d3
+        if slug == "D1":
+            return d1
+        if slug == "D2":
+            return d2
+        if slug == "D3":
+            return d3
         return None
-    
+
     mock_find_district.side_effect = _mock_find
 
     provider = _provider_with(MagicMock())
@@ -79,13 +116,13 @@ def test_get_campus_aggregates_stats(mock_build, mock_iter, mock_find_district):
     result = router.get_campus_aggregates(status="charter")
     assert result.status is QueryResultStatus.OK
     payload = result.payload
-    
+
     # Should match c1 and c2
     assert payload["total_campuses"] == 2
     # Enrollment should come from District D1 (350), not Sum(100, 200)
     assert payload["total_enrollment"] == 350
     # Average is still total / count ? The prompt didn't specify changing this, but mathematically:
-    assert payload["average_enrollment"] == 175.0 # 350 / 2
+    assert payload["average_enrollment"] == 175.0  # 350 / 2
     assert payload["rating_distribution"] == {"A": 1, "B": 1}
     # Scores: A=90, B=80 -> Avg = 85
     assert payload["average_rating_score"] == 85.0

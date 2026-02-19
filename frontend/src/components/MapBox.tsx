@@ -140,7 +140,7 @@ function ClusteredMarkers({
         }
 
         if (!clusterRef.current) {
-            // @ts-ignore leaflet.markercluster augments L with markerClusterGroup
+            // @ts-expect-error leaflet.markercluster augments L with markerClusterGroup
             clusterRef.current = L.markerClusterGroup({
                 chunkedLoading: true,
                 showCoverageOnHover: false
@@ -153,7 +153,7 @@ function ClusteredMarkers({
             return;
         }
 
-        // @ts-ignore markerClusterGroup supports clearLayers
+        // @ts-expect-error markerClusterGroup supports clearLayers
         group.clearLayers();
         markers.forEach((marker) => {
             const instance = L.marker([marker.lat, marker.lon]);
@@ -164,7 +164,7 @@ function ClusteredMarkers({
                 `;
                 instance.bindPopup(popup);
             }
-            // @ts-ignore markerClusterGroup supports addLayer
+            // @ts-expect-error markerClusterGroup supports addLayer
             group.addLayer(instance);
         });
     }, [map, markers]);
@@ -262,6 +262,7 @@ export function MapBox({
             return [converted.lat, converted.lon] as [number, number];
         }
         return center;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [center[0], center[1]]);
 
     const normalizedMarkers = useMemo(() => {
@@ -306,6 +307,7 @@ export function MapBox({
         const sw = unprojectWebMercator(minLon, minLat);
         const ne = unprojectWebMercator(maxLon, maxLat);
         return [sw.lon, sw.lat, ne.lon, ne.lat] as [number, number, number, number];
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bounds?.[0], bounds?.[1], bounds?.[2], bounds?.[3]]);
 
     const resolvedRenderer = useMemo(() => resolveRenderer(renderer), [renderer]);

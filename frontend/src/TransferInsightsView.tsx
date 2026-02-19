@@ -127,6 +127,7 @@ export function TransferInsightsView() {
 
   useEffect(() => {
     loadInsights(filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const charterShare = useMemo(() => {

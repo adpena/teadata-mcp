@@ -96,6 +96,7 @@ export default function MapLibreView({
             map.remove();
             mapRef.current = null;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

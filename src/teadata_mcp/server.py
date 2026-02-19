@@ -1,4 +1,5 @@
 "Entry points for running the TEA Data MCP server."
+
 from __future__ import annotations
 
 import argparse
@@ -86,7 +87,9 @@ async def build_app(
         idempotentHint=True,
     )
 
-    def invocation_strings(tool_name: str, arguments: Dict[str, Any]) -> tuple[str, str]:
+    def invocation_strings(
+        tool_name: str, arguments: Dict[str, Any]
+    ) -> tuple[str, str]:
         district = arguments.get("district_identifier") or arguments.get("identifier")
         if tool_name in boundary_tools:
             label = f"{district} boundaries" if district else "district boundaries"
@@ -121,7 +124,9 @@ async def build_app(
         status = arguments.get("status")
         if tool_name in charter_tools:
             status = "charter"
-        identifiers = arguments.get("identifiers") if tool_name == "compare_campuses" else None
+        identifiers = (
+            arguments.get("identifiers") if tool_name == "compare_campuses" else None
+        )
         payload = json.dumps(
             {
                 "tool": tool_name,
@@ -189,12 +194,15 @@ async def build_app(
                     "questions or to supply identifiers for detail, boundary, or campus list queries. "
                     "Optionally request specific meta_fields for additional metrics. "
                     "DO NOT search the web for basic district info; this tool provides it locally. "
-                    "Example: \"Find Austin ISD\" or \"Get district 227901\"."
+                    'Example: "Find Austin ISD" or "Get district 227901".'
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "identifier": {"type": "string", "description": "District name or number"},
+                        "identifier": {
+                            "type": "string",
+                            "description": "District name or number",
+                        },
                         "meta_fields": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -247,10 +255,23 @@ async def build_app(
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "query": {"type": "string", "description": "Search text (name, number, district)"},
-                        "status": {"type": "string", "enum": ["all", "charter", "isd", "private"], "default": "all"},
-                        "rating": {"type": "string", "description": "Filter by rating (A, B, C, D, F, NR) or 'all'"},
-                        "grade_level": {"type": "string", "description": "Filter by grade level (Elementary, Middle, High) or 'all'"},
+                        "query": {
+                            "type": "string",
+                            "description": "Search text (name, number, district)",
+                        },
+                        "status": {
+                            "type": "string",
+                            "enum": ["all", "charter", "isd", "private"],
+                            "default": "all",
+                        },
+                        "rating": {
+                            "type": "string",
+                            "description": "Filter by rating (A, B, C, D, F, NR) or 'all'",
+                        },
+                        "grade_level": {
+                            "type": "string",
+                            "description": "Filter by grade level (Elementary, Middle, High) or 'all'",
+                        },
                         "limit": {"type": "integer", "default": 20},
                         "meta_fields": {
                             "type": "array",
@@ -277,16 +298,29 @@ async def build_app(
                 description=(
                     "Compute aggregate statistics (total enrollment, rating distribution, etc.) "
                     "for campuses matching specific filters. Use this for questions like "
-                    "\"Total enrollment of all charter schools\" or \"How many A-rated campuses are there?\". "
+                    '"Total enrollment of all charter schools" or "How many A-rated campuses are there?". '
                     "Supports the same filters as search_campuses (query, status, rating, grade_level)."
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "query": {"type": "string", "description": "Search text (name, number, district)"},
-                        "status": {"type": "string", "enum": ["all", "charter", "isd", "private"], "default": "all"},
-                        "rating": {"type": "string", "description": "Filter by rating (A, B, C, D, F, NR) or 'all'"},
-                        "grade_level": {"type": "string", "description": "Filter by grade level (Elementary, Middle, High) or 'all'"},
+                        "query": {
+                            "type": "string",
+                            "description": "Search text (name, number, district)",
+                        },
+                        "status": {
+                            "type": "string",
+                            "enum": ["all", "charter", "isd", "private"],
+                            "default": "all",
+                        },
+                        "rating": {
+                            "type": "string",
+                            "description": "Filter by rating (A, B, C, D, F, NR) or 'all'",
+                        },
+                        "grade_level": {
+                            "type": "string",
+                            "description": "Filter by grade level (Elementary, Middle, High) or 'all'",
+                        },
                     },
                 },
                 annotations=read_only_annotations,
@@ -312,12 +346,15 @@ async def build_app(
                     "Return a campus profile with rich data: Staffing, Class Sizes, Demographics, "
                     "Transfers Out, Location, and Ratings. DO NOT search the web for these metrics; "
                     "they are provided locally. Use `get_data_fields` to discover other available metrics "
-                    "(e.g., test scores) if needed. Example: \"Show details for campus 227901001\"."
+                    '(e.g., test scores) if needed. Example: "Show details for campus 227901001".'
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "identifier": {"type": "string", "description": "Campus name or number"},
+                        "identifier": {
+                            "type": "string",
+                            "description": "Campus name or number",
+                        },
                         "meta_fields": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -383,12 +420,15 @@ async def build_app(
                     "for the district or campus_meta_fields for each campus. Responses include payload.table "
                     "and payload.exports for deterministic tables and CSV/JSON export; if "
                     "payload.completeness.needs_follow_up or pagination.has_more is true, follow "
-                    "next_tool_call before finalizing. Example: \"List campuses in Austin ISD\"."
+                    'next_tool_call before finalizing. Example: "List campuses in Austin ISD".'
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "identifier": {"type": "string", "description": "District name or number"},
+                        "identifier": {
+                            "type": "string",
+                            "description": "District name or number",
+                        },
                         "meta_fields": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -435,11 +475,28 @@ async def build_app(
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "identifier": {"type": "string", "description": "Target campus name or number to search around."},
-                        "latitude": {"type": "number", "description": "Latitude (required if identifier not provided)."},
-                        "longitude": {"type": "number", "description": "Longitude (required if identifier not provided)."},
-                        "radius_miles": {"type": "number", "default": 5.0, "description": "Search radius in miles."},
-                        "limit": {"type": "integer", "default": 50, "description": "Maximum number of results to return."},
+                        "identifier": {
+                            "type": "string",
+                            "description": "Target campus name or number to search around.",
+                        },
+                        "latitude": {
+                            "type": "number",
+                            "description": "Latitude (required if identifier not provided).",
+                        },
+                        "longitude": {
+                            "type": "number",
+                            "description": "Longitude (required if identifier not provided).",
+                        },
+                        "radius_miles": {
+                            "type": "number",
+                            "default": 5.0,
+                            "description": "Search radius in miles.",
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "default": 50,
+                            "description": "Maximum number of results to return.",
+                        },
                         "cursor": {
                             "type": "integer",
                             "default": 0,
@@ -470,7 +527,7 @@ async def build_app(
                         "identifiers": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "List of campus names or numbers to compare."
+                            "description": "List of campus names or numbers to compare.",
                         },
                         "meta_fields": {
                             "type": "array",
@@ -489,7 +546,7 @@ async def build_app(
                     "Fetch campus or district geometry/location data from the local teadata snapshot, "
                     "including geometry_fields to show which attributes are available. Use this for "
                     "map/boundary questions or to confirm geometry before drawing. Example: "
-                    "\"What geometry fields does Austin ISD expose?\""
+                    '"What geometry fields does Austin ISD expose?"'
                 ),
                 inputSchema={
                     "type": "object",
@@ -543,7 +600,7 @@ async def build_app(
                     "payload.completeness.needs_follow_up or pagination.has_more is true, follow "
                     "next_tool_call before finalizing. "
                     "Use campus_meta_fields to include specific meta keys without dumping full meta. "
-                    "Example: \"Find campuses within Austin ISD boundaries\"."
+                    'Example: "Find campuses within Austin ISD boundaries".'
                 ),
                 inputSchema={
                     "type": "object",
@@ -562,7 +619,10 @@ async def build_app(
                             "default": "all",
                         },
                         "limit": {"type": "integer", "default": 100},
-                        "include_campus_geometry": {"type": "boolean", "default": False},
+                        "include_campus_geometry": {
+                            "type": "boolean",
+                            "default": False,
+                        },
                         "include_geojson": {"type": "boolean", "default": True},
                         "boundary_delivery": {
                             "type": "string",
@@ -634,7 +694,10 @@ async def build_app(
                             "description": "Optional filter against campus name/number/district/charter label (e.g., IDEA).",
                         },
                         "limit": {"type": "integer", "default": 100},
-                        "include_campus_geometry": {"type": "boolean", "default": False},
+                        "include_campus_geometry": {
+                            "type": "boolean",
+                            "default": False,
+                        },
                         "include_geojson": {"type": "boolean", "default": True},
                         "boundary_delivery": {
                             "type": "string",
@@ -690,7 +753,7 @@ async def build_app(
                     "how list outputs are compacted. Responses paginate via cursor/next_cursor. When "
                     "lists are returned, payload.table and payload.exports provide deterministic tables "
                     "and CSV/JSON export; if payload.completeness.needs_follow_up is true, follow "
-                    "next_tool_call before finalizing. Example: \"Show campuses within Austin ISD on a map\"."
+                    'next_tool_call before finalizing. Example: "Show campuses within Austin ISD on a map".'
                 ),
                 inputSchema={
                     "type": "object",
@@ -709,7 +772,10 @@ async def build_app(
                             "default": "all",
                         },
                         "limit": {"type": "integer", "default": 100},
-                        "include_campus_geometry": {"type": "boolean", "default": False},
+                        "include_campus_geometry": {
+                            "type": "boolean",
+                            "default": False,
+                        },
                         "include_geojson": {"type": "boolean", "default": True},
                         "boundary_delivery": {
                             "type": "string",
@@ -760,7 +826,7 @@ async def build_app(
                 description=(
                     "Map-focused alias for charter-only campuses within a district boundary. Use this "
                     "for prompts like \"Find all charter school campuses located within Austin ISD's "
-                    "boundaries and show them on an interactive map\". response_profile defaults to "
+                    'boundaries and show them on an interactive map". response_profile defaults to '
                     "'map' for compact GeoJSON-only responses. campus_list_format controls how list "
                     "outputs are compacted. Responses paginate via cursor/next_cursor. When lists are "
                     "returned, payload.table and payload.exports provide deterministic tables and "
@@ -779,7 +845,10 @@ async def build_app(
                             "description": "Optional filter against campus name/number/district/charter label (e.g., IDEA).",
                         },
                         "limit": {"type": "integer", "default": 100},
-                        "include_campus_geometry": {"type": "boolean", "default": False},
+                        "include_campus_geometry": {
+                            "type": "boolean",
+                            "default": False,
+                        },
                         "include_geojson": {"type": "boolean", "default": True},
                         "boundary_delivery": {
                             "type": "string",
@@ -845,7 +914,7 @@ async def build_app(
                 description=EXPLORER_DESCRIPTION,
                 mimeType=WIDGET_MIME_TYPE,
                 _meta=explorer_widget_meta(),
-            )
+            ),
         ]
 
     @app.read_resource()
@@ -902,6 +971,7 @@ async def build_app(
         )
         started = time.perf_counter()
         perf_timer = start_perf_timer(name, arguments, invocation_id=invocation_id)
+
         def dispatch_tool() -> QueryResult:
             if name == "get_district":
                 return router.get_district(
@@ -1072,7 +1142,9 @@ async def build_app(
         finish_perf_timer(
             perf_timer,
             payload=result.payload,
-            status=result.status.value if hasattr(result.status, "value") else str(result.status),
+            status=result.status.value
+            if hasattr(result.status, "value")
+            else str(result.status),
         )
         duration_ms = (time.perf_counter() - started) * 1000
         logger.info(
@@ -1100,16 +1172,10 @@ async def serve(config: ServerConfig) -> None:
     try:
         from mcp.server.stdio import stdio_server
     except ImportError as exc:
-        raise RuntimeError(
-            "mcp.server.stdio is not available."
-        ) from exc
+        raise RuntimeError("mcp.server.stdio is not available.") from exc
 
     async with stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            app.create_initialization_options()
-        )
+        await app.run(read_stream, write_stream, app.create_initialization_options())
 
 
 def _format_check(prefix: str, message: str) -> str:

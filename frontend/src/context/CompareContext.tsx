@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface CompareItem {
@@ -18,7 +19,7 @@ const CompareContext = createContext<CompareContextType | undefined>(undefined);
 export function CompareProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CompareItem[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('teadata_compare');
+      const saved = window.localStorage.getItem('teadata_compare');
       return saved ? JSON.parse(saved) : [];
     }
     return [];
@@ -26,7 +27,7 @@ export function CompareProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('teadata_compare', JSON.stringify(items));
+      window.localStorage.setItem('teadata_compare', JSON.stringify(items));
     }
   }, [items]);
 

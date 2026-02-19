@@ -1,4 +1,5 @@
 """Unit tests for the MCP query router."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,7 +10,6 @@ from teadata_mcp.config import ServerConfig
 from teadata_mcp.data_engine_provider import DataEngineProvider
 from teadata_mcp.query_models import QueryResultStatus
 from teadata_mcp.router import QueryRouter
-import teadata_mcp.router as router_module
 
 
 @dataclass
@@ -44,7 +44,7 @@ def _provider_with(fake_engine: MagicMock) -> DataEngineProvider:
 def test_get_district_returns_summary_when_match_found(mock_find):
     district = _FakeDistrict(name="Aldine ISD", district_number="101902", rating="A")
     mock_find.return_value = district
-    
+
     provider = _provider_with(MagicMock())
     router = QueryRouter(provider)
 
@@ -81,10 +81,12 @@ def test_get_district_requires_identifier():
 @patch("teadata_mcp.router.build_summary")
 def test_search_campuses_filters_results(mock_build, mock_iter):
     c1 = _FakeCampus(name="Alpha Elementary", campus_number="1", district_number="D1")
-    c2 = _FakeCampus(name="Beta High", campus_number="2", district_number="D1", is_charter=True)
-    
+    c2 = _FakeCampus(
+        name="Beta High", campus_number="2", district_number="D1", is_charter=True
+    )
+
     mock_iter.return_value = [c1, c2]
-    
+
     # Mock build_summary to return objects with attributes we check
     s1 = MagicMock()
     s1.name_lower = "alpha elementary"
@@ -93,7 +95,7 @@ def test_search_campuses_filters_results(mock_build, mock_iter):
     s1.charter = False
     s1.is_private = False
     s1.to_dict.return_value = {"name": "Alpha Elementary"}
-    
+
     s2 = MagicMock()
     s2.name_lower = "beta high"
     s2.campus_number_lower = "2"
@@ -102,7 +104,7 @@ def test_search_campuses_filters_results(mock_build, mock_iter):
     s2.is_private = False
     s2.to_dict.return_value = {"name": "Beta High"}
 
-    mock_build.side_effect = [s1, s2, s1, s2] # for multiple calls
+    mock_build.side_effect = [s1, s2, s1, s2]  # for multiple calls
 
     provider = _provider_with(MagicMock())
     router = QueryRouter(provider)
@@ -113,7 +115,9 @@ def test_search_campuses_filters_results(mock_build, mock_iter):
     assert res1.payload["results"][0]["name"] == "Alpha Elementary"
     assert res1.payload["completeness"]["returned_count"] == 1
     assert res1.payload["table"]["columns"]
-    assert res1.payload["exports"]["csv"]["resource_uri"].startswith("teadata://export/")
+    assert res1.payload["exports"]["csv"]["resource_uri"].startswith(
+        "teadata://export/"
+    )
 
     # Test filter by charter
     res2 = router.search_campuses(query="", status="charter")
@@ -126,7 +130,7 @@ def test_search_campuses_filters_results(mock_build, mock_iter):
 def test_get_campus_detail_returns_data(mock_build, mock_find):
     c1 = _FakeCampus(name="Alpha", campus_number="1", district_number="D1")
     mock_find.return_value = c1
-    
+
     s1 = MagicMock()
     s1.name = "Alpha"
     s1.campus_number = "1"
@@ -137,7 +141,7 @@ def test_get_campus_detail_returns_data(mock_build, mock_find):
     router = QueryRouter(provider)
 
     result = router.get_campus_detail("1")
-    
+
     assert result.status is QueryResultStatus.OK
     assert result.payload["name"] == "Alpha"
 
@@ -146,16 +150,16 @@ def test_get_campus_detail_returns_data(mock_build, mock_find):
 def test_get_district_detail_returns_data(mock_find):
     d1 = _FakeDistrict(name="D1", district_number="101")
     mock_find.return_value = d1
-    
+
     engine = MagicMock()
     # Mock campuses_in to return empty list
     engine.campuses_in.return_value = []
-    
+
     provider = _provider_with(engine)
     router = QueryRouter(provider)
 
     result = router.get_district_detail("101")
-    
+
     assert result.status is QueryResultStatus.OK
     assert result.payload["name"] == "D1"
     assert "campuses" in result.payload
@@ -168,12 +172,12 @@ def test_get_nearby_campuses_by_id(mock_build, mock_find, mock_extract):
     engine = MagicMock()
     c1 = _FakeCampus(name="Center", campus_number="1", district_number="D1")
     c2 = _FakeCampus(name="Nearby", campus_number="2", district_number="D1")
-    
+
     mock_find.return_value = c1
-    mock_extract.side_effect = [(30.0, -97.0), (30.05, -97.05)] # center, nearby
-    
+    mock_extract.side_effect = [(30.0, -97.0), (30.05, -97.05)]  # center, nearby
+
     engine.radius_campuses.return_value = [c2]
-    
+
     s2 = MagicMock()
     s2.to_dict.return_value = {"name": "Nearby"}
     mock_build.return_value = s2
@@ -182,7 +186,7 @@ def test_get_nearby_campuses_by_id(mock_build, mock_find, mock_extract):
     router = QueryRouter(provider)
 
     result = router.get_nearby_campuses(identifier="1", radius_miles=5)
-    
+
     assert result.status is QueryResultStatus.OK
     assert len(result.payload["results"]) == 1
     assert result.payload["results"][0]["name"] == "Nearby"
@@ -193,7 +197,7 @@ def test_get_nearby_campuses_by_id(mock_build, mock_find, mock_extract):
 def test_get_nearby_campuses_requires_location():
     provider = _provider_with(MagicMock())
     router = QueryRouter(provider)
-    
+
     result = router.get_nearby_campuses(radius_miles=5)
     assert result.status is QueryResultStatus.ERROR
     assert "Could not determine location" in result.message
@@ -206,15 +210,25 @@ def test_get_nearby_campuses_requires_location():
 def test_compare_campuses_returns_data(mock_build, mock_staff, mock_demo, mock_find):
     c1 = _FakeCampus(name="C1", campus_number="1", district_number="D1")
     c2 = _FakeCampus(name="C2", campus_number="2", district_number="D1")
-    
+
     mock_find.side_effect = [c1, c2]
-    
+
     s1 = MagicMock()
-    s1.to_dict.return_value = {"name": "C1", "campus_number": "1", "rating": "A", "enrollment": 500}
+    s1.to_dict.return_value = {
+        "name": "C1",
+        "campus_number": "1",
+        "rating": "A",
+        "enrollment": 500,
+    }
     s2 = MagicMock()
-    s2.to_dict.return_value = {"name": "C2", "campus_number": "2", "rating": "B", "enrollment": 600}
+    s2.to_dict.return_value = {
+        "name": "C2",
+        "campus_number": "2",
+        "rating": "B",
+        "enrollment": 600,
+    }
     mock_build.side_effect = [s1, s2]
-    
+
     mock_staff.return_value = {"avg_teacher_salary": 50000}
     mock_demo.return_value = {"programs_percent": {"econ_disadv": 50.0}}
 
@@ -222,7 +236,7 @@ def test_compare_campuses_returns_data(mock_build, mock_staff, mock_demo, mock_f
     router = QueryRouter(provider)
 
     result = router.compare_campuses(["1", "2"])
-    
+
     assert result.status is QueryResultStatus.OK
     assert len(result.payload["comparison"]) == 2
     assert result.payload["comparison"][0]["name"] == "C1"
@@ -238,7 +252,9 @@ def test_find_campuses_in_district_boundary_filters(mock_find):
         (-97.0, 30.0),
         (-98.0, 30.0),
     ]
-    district = _FakeDistrict(name="Austin ISD", district_number="227901", boundary=boundary)
+    district = _FakeDistrict(
+        name="Austin ISD", district_number="227901", boundary=boundary
+    )
     mock_find.return_value = district
 
     inside_charter = _FakeCampus(
@@ -280,7 +296,10 @@ def test_find_campuses_in_district_boundary_filters(mock_find):
     assert result.payload["count"] == 1
     assert result.payload["campuses"][0]["name"] == "IDEA North"
     assert result.payload["campuses"][0]["overall_rating_2025"] == "A"
-    assert result.payload["campuses"][0]["meta"]["campus_2025_staff_teacher_student_ratio"] == 15.2
+    assert (
+        result.payload["campuses"][0]["meta"]["campus_2025_staff_teacher_student_ratio"]
+        == 15.2
+    )
     assert result.payload["district"]["geometry"] is None
     assert "boundary_reference" in result.payload["district"]
     assert result.payload["district"]["boundary_reference"]["download_url"]
@@ -294,7 +313,9 @@ def test_find_campuses_in_district_boundary_filters(mock_find):
     assert "geojson" in result.payload
     assert len(result.payload["geojson"]["features"]) == 1
     assert (
-        result.payload["geojson"]["features"][0]["properties"]["meta"]["campus_2025_staff_teacher_student_ratio"]
+        result.payload["geojson"]["features"][0]["properties"]["meta"][
+            "campus_2025_staff_teacher_student_ratio"
+        ]
         == 15.2
     )
     assert result.payload["map_instructions"]
@@ -311,7 +332,9 @@ def test_boundary_trimming_adds_response_trimmed(mock_payload_size, mock_find):
         (-97.0, 30.0),
         (-98.0, 30.0),
     ]
-    district = _FakeDistrict(name="Austin ISD", district_number="227901", boundary=boundary)
+    district = _FakeDistrict(
+        name="Austin ISD", district_number="227901", boundary=boundary
+    )
     mock_find.return_value = district
 
     inside_charter = _FakeCampus(
@@ -351,7 +374,8 @@ def test_boundary_trimming_adds_response_trimmed(mock_payload_size, mock_find):
     assert result.payload["count"] == 1
     assert result.payload["response_trimmed"]["applied"] is True
     assert any(
-        "Results trimmed" in note for note in result.payload["response_trimmed"]["notes"]
+        "Results trimmed" in note
+        for note in result.payload["response_trimmed"]["notes"]
     )
     assert result.payload["pagination"]["has_more"] is True
     assert result.payload["pagination"]["next_cursor"] == 1

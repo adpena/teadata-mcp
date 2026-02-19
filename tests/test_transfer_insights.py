@@ -1,4 +1,5 @@
 """Tests for transfer insight aggregation."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,7 +43,9 @@ def test_transfer_insights_missing_method():
 def test_transfer_insights_aggregates(mock_iter, mock_coords, _mock_distance):
     source1 = _FakeCampus(name="Source One", campus_number="S1", rating="B")
     source2 = _FakeCampus(name="Source Two", campus_number="S2", rating="C")
-    dest1 = _FakeCampus(name="Dest Charter", campus_number="D1", rating="A", is_charter=True)
+    dest1 = _FakeCampus(
+        name="Dest Charter", campus_number="D1", rating="A", is_charter=True
+    )
     dest2 = _FakeCampus(name="Dest Traditional", campus_number="D2", rating="C")
     dest3 = _FakeCampus(name="Dest Higher", campus_number="D3", rating="B")
 

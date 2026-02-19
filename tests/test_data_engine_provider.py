@@ -1,4 +1,5 @@
 """Tests for :mod:`teadata_mcp.data_engine_provider`."""
+
 from __future__ import annotations
 
 import pytest
@@ -18,7 +19,9 @@ def test_engine_factory_is_used_when_provided():
 
 
 def test_engine_failure_is_cached():
-    config = ServerConfig(engine_factory=lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+    config = ServerConfig(
+        engine_factory=lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
     provider = DataEngineProvider(config)
 
     with pytest.raises(DataEngineLoadError):

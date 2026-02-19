@@ -1,4 +1,5 @@
 """Shared data structures used by the routing layer."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

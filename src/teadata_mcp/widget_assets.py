@@ -1,4 +1,5 @@
 """Widget asset helpers for Apps SDK UI rendering."""
+
 from __future__ import annotations
 
 from functools import lru_cache

@@ -1,4 +1,5 @@
 """In-memory export store for table payloads."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -4,10 +4,16 @@ import json
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from .assistant_auth import AssistantAuthConfig, authenticate_from_headers, extract_header
+from .assistant_auth import (
+    AssistantAuthConfig,
+    authenticate_from_headers,
+    extract_header,
+)
 
 
-def _json_response(*, status: int, payload: dict) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
+def _json_response(
+    *, status: int, payload: dict
+) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
     body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
     headers = [
         (b"content-type", b"application/json"),
@@ -17,7 +23,9 @@ def _json_response(*, status: int, payload: dict) -> tuple[int, list[tuple[bytes
     return status, headers, body
 
 
-def _redirect_response(*, location: str) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
+def _redirect_response(
+    *, location: str
+) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
     body = b""
     headers = [
         (b"location", location.encode("utf-8")),
