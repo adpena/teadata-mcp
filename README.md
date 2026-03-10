@@ -1,66 +1,95 @@
-# TEA Data MCP Server
+# teadata-mcp
 
-This repository contains a Model Context Protocol (MCP) server that exposes the `teadata` library, providing rich data on Texas schools (districts, campuses, demographics, staffing, etc.). It is designed to work as a backend for ChatGPT applications.
+`teadata-mcp` is a Model Context Protocol server and ChatGPT-ready web app for
+exploring Texas public school data. It wraps the [`teadata`](https://github.com/adpena/teadata)
+data engine in a transport and UI layer that works well for ChatGPT apps, internal
+assistants, and browser-based workflows.
 
-## ChatGPT App Alignment
+The project is built around a simple idea: make Texas education data usable in
+conversational interfaces without sacrificing provenance, structure, or operator
+control.
 
-This application is designed to align with OpenAI's requirements for high-quality ChatGPT Apps:
+## What the Repository Provides
 
-*   **Focused Functionality**: It provides a specific, high-value service—accessing and analyzing Texas public education data—rather than a broad, undefined set of tools.
-*   **Native Experience**: The frontend uses the official `@openai/apps-sdk-ui` to ensure the interface feels like a natural extension of ChatGPT.
-*   **Transparency**: The application relies on public datasets from the Texas Education Agency (TEA) and does not store or process personal user data.
-*   **Production Ready**: It includes a robust deployment pipeline (Dockerfile, multi-stage builds) for reliable hosting on platforms like Render.
+- An MCP server with streamable HTTP, WebSocket, and legacy SSE transports
+- A React frontend for ChatGPT-style exploration and inline tool workflows
+- Tools for campus search, district detail, geospatial lookup, comparisons, and transfer insights
+- Widget assets for map and boundary visualization inside supported clients
+- SSO-aware deployment options for pairing a public assistant with a private website workflow
 
-**Powered by [Data for Public Education](https://dataforpubliceducation.com)**
+## Core Use Cases
 
-This MCP server exposes the same powerful data engine that drives the [Data for Public Education](https://dataforpubliceducation.com) website, a comprehensive resource for exploring Texas school data.
+- Build a Texas school-data assistant for ChatGPT or another MCP-capable client
+- Embed school search and boundary workflows in a browser-based assistant UI
+- Support internal research or public-interest analysis with structured TEA data access
+- Pair `teadata-app` and `teadata-mcp` so the public website and assistant share the same data model
 
-## Features
+## Highlights
 
-- **Rich Data Retrieval**: Get detailed stats on enrollment, ratings, staffing (salaries, experience), and class sizes.
-- **Search**: Fuzzy search for campuses by name, number, or district.
-- **Geospatial**: Find schools near a location or another school.
-- **Comparisons**: Side-by-side metric comparison of multiple campuses.
-- **Transfer Insights**: Sankey-ready flows, charter share, rating shifts, and neighborhood retention patterns.
-- **ChatGPT UI**: Includes a React frontend using OpenAI's `apps-sdk-ui` for a native-feeling experience.
-- **Boundary Widgets**: Boundary tools return an Apps SDK widget (map + table) for inline results in ChatGPT.
-- **Explorer Widget**: Search, campus detail, district detail, nearby, and comparison tools render inline UI in ChatGPT.
-- **Tooling Guide**: A built-in prompt-to-tool guide (`get_tooling_guide`) that helps ChatGPT choose the right tool for map, boundary, and spatial queries.
+- Rich campus and district retrieval backed by `teadata`
+- Fuzzy search across district names, campus names, and identifiers
+- Geospatial tools for nearby campuses and boundary-driven analysis
+- Side-by-side comparison flows for campuses and districts
+- Transfer and mobility insights suitable for charts and narrative summaries
+- Response shaping controls that keep large payloads usable in conversational clients
+- Widget rendering for boundary and explorer workflows in compatible MCP surfaces
 
-## Quick Start (Local Development)
+## Architecture
 
-The easiest way to run the server and frontend locally is with the included script:
+At a high level, the repository is split into three layers:
+
+1. `teadata` data access and domain logic
+2. MCP/server transport and assistant middleware
+3. React frontend and widget assets for browser and ChatGPT experiences
+
+## Project Layout
+
+```text
+.
+├── src/teadata_mcp/
+│   ├── logic.py                 # Domain logic built on teadata
+│   ├── router.py                # Tool definitions and request routing
+│   ├── server.py                # MCP server wiring
+│   ├── sse_server.py            # Starlette app / HTTP entrypoint
+│   ├── assistant_auth.py        # Shared-token assistant auth helpers
+│   ├── assistant_middleware.py  # Browser/API auth behavior
+│   ├── tooling_guide.py         # Prompt-to-tool guidance
+│   └── widget_assets/           # Inline HTML widget assets
+├── frontend/                    # React application for the browser UI
+├── tests/                       # Router, logic, auth, and transport tests
+├── run_dev.sh                   # Local development launcher
+└── Dockerfile                   # Container deployment
+```
+
+## Local Development
+
+### Fastest Path
 
 ```bash
 ./run_dev.sh
 ```
 
-This will:
-1.  Install frontend dependencies and build the React app.
-2.  Sync Python dependencies using `uv`.
-3.  Start the `uvicorn` server (default port `8000`; auto-selects the next available port if in use).
+This script:
 
-The server exposes:
-- **MCP Streamable HTTP Endpoint (Recommended)**: `http://localhost:<port>/mcp`
-- **MCP WebSocket Endpoint (Optional)**: `ws://localhost:<port>/ws`
-- **Legacy MCP SSE Endpoint**: `http://localhost:<port>/sse`
-- **Legacy Messages Endpoint**: `http://localhost:<port>/messages`
-- **Frontend UI**: `http://localhost:<port>/`
+- syncs Python dependencies with `uv`
+- installs/builds frontend assets
+- starts the application server
 
-## Manual Setup
+By default the service exposes:
 
-### Backend
+- `http://localhost:<port>/mcp` for streamable HTTP MCP
+- `ws://localhost:<port>/ws` for WebSocket MCP
+- `http://localhost:<port>/sse` for legacy SSE MCP
+- `http://localhost:<port>/` for the browser UI
 
-This project uses [`uv`](https://docs.astral.sh/uv/) for Python package management.
+### Manual Backend Setup
 
 ```bash
 uv sync
 uv run uvicorn teadata_mcp.sse_server:app --reload --port 8000
 ```
 
-### Frontend
-
-The frontend is a Vite + React app located in `frontend/`.
+### Manual Frontend Setup
 
 ```bash
 cd frontend
@@ -68,185 +97,105 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-## Production Deployment (Render)
+## Testing
 
-This project is configured for deployment to [Render](https://render.com/).
-
-1.  **Dockerfile**: A `Dockerfile` is included that builds the environment and runs the server with `uvicorn`.
-2.  **Environment Variables**:
-    - `TEADATA_SNAPSHOT` (Optional): Path to a pre-loaded snapshot file if you want to avoid rebuilding the data engine on startup.
-    - `TEADATA_SNAPSHOT_URL` (Optional): URL to a real snapshot asset (useful when the packaged snapshot is a git-lfs pointer).
-    - `TEADATA_MAX_RESPONSE_BYTES` (Optional): Soft cap for list-heavy responses (default 24000; set 0 to disable).
-    - `PORT`: Automatically set by Render (defaults to 10000).
-
-The Dockerfile uses a multi-stage build strategy (implied) or a simple direct build. For a unified deployment, ensure the `frontend` is built and the `static_dist` folder is present before the Python server starts, or update your build pipeline to run `npm run build` in the frontend directory before building the Docker image.
-
-**Note on Static Files:** The `sse_server.py` is configured to serve static files from `static_dist` if they exist. In a production Docker build, you should add a step to build the frontend assets.
-
-## Integrating With `teadata-app` (SSO Launch)
-
-For mission-critical deployments, run this service separately (e.g. `assistant.dataforpubliceducation.com`) and link to it from `teadata-app`. The recommended flow is:
-
-1. User clicks `Assistant` in `teadata-app`.
-2. `teadata-app` sets an HttpOnly cross-subdomain cookie (`teadata_assistant_sso`) and redirects to the assistant service.
-3. This server verifies the cookie on `/api/tool/*` (and the UI) and rate-limits by user id.
-
-### Domain requirements
-
-Cookie-based SSO only works when both apps are on the same registrable domain (eTLD+1), so the cookie can be shared.
-
-- Recommended: `dataforpubliceducation.com` (Django) + `assistant.dataforpubliceducation.com` (this service)
-- If you host this service on a different domain, you’ll need a different auth mechanism (cookies won’t transfer).
-
-### `teadata-app` (Django) environment
-
-Set these on the `teadata-app` service:
-
-- `TEADATA_ASSISTANT_ENABLED=1`: shows the `Assistant` nav link and enables `GET /assistant/launch/`.
-- `TEADATA_ASSISTANT_URL`: where the launch endpoint redirects (e.g. `https://assistant.dataforpubliceducation.com/`).
-- `TEADATA_ASSISTANT_SSO_SECRET`: shared signing key (must match this service).
-- `TEADATA_ASSISTANT_COOKIE_DOMAIN`: e.g. `.dataforpubliceducation.com` (leave empty for localhost).
-- `TEADATA_ASSISTANT_COOKIE_NAME`: defaults to `teadata_assistant_sso` (must match this service).
-- `TEADATA_ASSISTANT_SSO_TTL_SECONDS`: defaults to `43200` (12 hours).
-
-### `teadata-mcp` (this service) environment
-
-Set these on this service:
-
-- `TEADATA_ASSISTANT_SSO_SECRET`: shared signing key (must match `teadata-app`).
-- `TEADATA_ASSISTANT_COOKIE_NAME`: defaults to `teadata_assistant_sso` (must match `teadata-app`).
-- `TEADATA_ASSISTANT_LAUNCH_URL`: where to send unauthenticated browser requests (default `https://dataforpubliceducation.com/assistant/launch/`).
-- `TEADATA_ASSISTANT_ENFORCE_SSO`: defaults to enabled when `TEADATA_ASSISTANT_SSO_SECRET` is set; set `0` to run publicly without login.
-- `TEADATA_ASSISTANT_SSO_SKEW_SECONDS`: clock skew tolerance in seconds (default `60`).
-- `TEADATA_DEBUG` or `DEBUG`: enable Starlette debug locally.
-
-### Two-instance setup (recommended)
-
-Keep the portal assistant isolated (SSO-locked) and keep the ChatGPT app public by deploying two separate services from the same code:
-
-- **Website assistant (SSO-locked)**: `assistant.dataforpubliceducation.com`
-  - Set `TEADATA_ASSISTANT_ENFORCE_SSO=1` and `TEADATA_ASSISTANT_SSO_SECRET=<shared>` (must match `teadata-app`)
-  - Set `TEADATA_ASSISTANT_LAUNCH_URL=https://dataforpubliceducation.com/assistant/launch/`
-- **ChatGPT MCP (public)**: `mcp.dataforpubliceducation.com` (or similar)
-  - Set `TEADATA_ASSISTANT_ENFORCE_SSO=0` and do not set `TEADATA_ASSISTANT_SSO_SECRET`
-
-### Auth behavior
-
-- Browser UI: unauthenticated requests redirect to `TEADATA_ASSISTANT_LAUNCH_URL`.
-- API (`/api/*`) and MCP endpoints (`/sse`, `/messages`, `/mcp`): unauthenticated requests return `401`.
-- Non-browser clients can also send `Authorization: Bearer <token>` instead of a cookie (token value is the same as the SSO cookie value).
-
-### ChatGPT app note
-
-Cookie-based SSO is a browser flow; ChatGPT won’t automatically log users into your Django site or share those cookies. For a public ChatGPT app, deploy a separate instance with `TEADATA_ASSISTANT_ENFORCE_SSO=0` (and do not share your cross-subdomain cookie with it).
-
-### Making the ChatGPT app private (later)
-
-Two layers exist:
-
-- **ChatGPT visibility**: keep the GPT unlisted/private (ChatGPT product setting) so only you/your workspace can access it.
-- **Server-side access control** (optional): run the ChatGPT instance with authentication in front of it (e.g., reverse-proxy access control). Cookie-based portal SSO is not a good fit for ChatGPT clients; prefer a non-interactive mechanism (API key / service token) that ChatGPT can send on every request.
-
-### Render checklist
-
-- Configure health check path: `GET /healthz`.
-- Add a custom domain (recommended): `assistant.dataforpubliceducation.com`.
-- Set `TEADATA_ASSISTANT_SSO_SECRET` to the exact same value as `teadata-app` (rotate both services together).
-
-## Project Structure
-
-```
-.
-├── src/teadata_mcp/        # Python MCP Server
-│   ├── logic.py            # Business logic & data processing
-│   ├── router.py           # Tool definitions & routing
-│   ├── server.py           # MCP Server setup
-│   └── sse_server.py       # Starlette/SSE entry point
-├── frontend/               # React Frontend (ChatGPT UI)
-├── tests/                  # Unit tests
-├── Dockerfile              # Production build definition
-└── pyproject.toml          # Python dependencies
-```
-
-## Tooling Guide
-
-The server includes a `get_tooling_guide` tool that returns recommended tool calls for common intents
-(e.g., "show on a map", "within district boundaries", "compare campuses"). This makes it easier for
-ChatGPT to pick the right tools without falling back to web search. Boundary/map tools also support
-`response_profile` and `campus_meta_fields` to keep payloads compact while still exposing targeted
-metrics for styling and analysis.
-
-To update or add patterns, edit:
-
-`src/teadata_mcp/tooling_guide.py`
-
-## Inspecting Fields and Avoiding Truncation
-
-Large teadata objects contain rich `meta` payloads. To prevent oversized responses, the MCP tools
-return curated fields by default and only include `meta` keys when explicitly requested.
-
-Use this workflow to discover which fields are available and fetch only what you need:
-
-1. Identify the campus or district using `search_campuses` or `get_district`.
-2. Use `get_campus_detail` or `get_district_detail` to see curated fields (staffing, demographics,
-   class sizes, ratings, enrollment, etc.).
-3. Request additional metrics with `meta_fields` or `campus_meta_fields` in small batches. If a
-   requested key is missing, it will be omitted from the response.
-4. For geometry/boundaries, call `get_entity_geometry` and inspect `geometry_fields` to see what
-   geometric attributes are available.
-5. If payloads are still large, use `response_profile` on boundary/map tools:
-   - `map`: GeoJSON points only (compact, map-friendly)
-   - `list`: campus list only
-   - `both`: include both GeoJSON and list
-6. Boundary tools paginate. If `pagination.next_cursor` is present, call the same tool
-   again with `cursor=next_cursor` to fetch the next page. Use `max_response_bytes`
-   (default 24000 or `TEADATA_MAX_RESPONSE_BYTES`, set to 0 to disable) to control automatic trimming.
-7. For list outputs, set `campus_list_format` to control how compact the list is:
-   - `id_name` (default): campus_number + name tuples
-   - `id`: campus identifiers only (campus_number or name)
-   - `full`: full campus summaries (largest)
-8. When `next_tool_call` is provided, follow it exactly to fetch the next page; this
-   prevents ChatGPT from searching the web unnecessarily. Boundary responses also
-   include `do_not_web_search=true` and a `boundary_reference.download_url`.
-9. Set `include_total=true` on list tools to include `pagination.total_matches` when you
-   need counts across pages.
-10. If `payload.completeness.needs_follow_up` is true, follow `next_tool_call` (or ask the user to
-    continue) before finalizing results.
-11. List tools include `payload.table` for deterministic table rendering and `payload.exports`
-    with `resource_uri` for CSV/JSON exports; call `read_resource` to fetch full files when needed.
-12. `search_campuses`, `get_district_detail`, and `get_nearby_campuses` also paginate and
-    return `pagination` plus an optional `next_tool_call`.
-
-Example follow-up flow (map then list):
-
-```text
-Find all charter campuses within Austin ISD boundaries on a map, and include overall_rating_2025.
-Now return the same campuses as a list with campus_list_format id_name and campus_meta_fields: campus_2025_staff_teacher_student_ratio.
-```
-
-Common meta key patterns in teadata include `campus_2025_*` and `district_2025_*` (for the latest
-year). Ask for only the keys that match the user’s intent, and iterate with follow-up tool calls if
-you need more fields.
-
-See `SAMPLE_QUERIES.md` for prompts that demonstrate field inspection and follow-up calls.
-
-## Performance & Logging
-
-By default, the server writes JSON logs to `logs/teadata-mcp.log` (with rotation). Tool calls emit
-`tool.start` / `tool.end` records plus perf metrics (payload bytes, RSS deltas), which makes it easy
-to pinpoint lagginess.
-
-To generate a shareable report (and copy it to your clipboard):
+Run the Python test suite with:
 
 ```bash
-./share_perf_report.sh
+uv run pytest
 ```
 
-Useful flags:
-- `--slow-ms 250` to capture more “slow” calls
-- `--lines 50000` to analyze a larger window
+If you are modifying the frontend or widget behavior, also build the frontend to
+confirm the static bundle still compiles cleanly.
 
-Key env vars:
-- `TEADATA_LOG_FILE`, `TEADATA_LOG_LEVEL`, `TEADATA_LOG_FORMAT` (`json` or `text`)
-- `TEADATA_PERF_LOG`, `TEADATA_PERF_PAYLOAD`, `TEADATA_PERF_TRACEMALLOC`
-- `TEADATA_WARM_ENGINE_ON_STARTUP` (default `1`, set `0` to disable)
+## Deployment
+
+The repository is structured to deploy cleanly to container-friendly platforms
+such as Render.
+
+Important environment variables:
+
+- `TEADATA_SNAPSHOT`: path to a local snapshot
+- `TEADATA_SNAPSHOT_URL`: remote snapshot URL when the bundled artifact is unavailable
+- `TEADATA_MAX_RESPONSE_BYTES`: soft response-size cap for list-heavy results
+- `PORT`: server port supplied by the platform
+
+In production, build the frontend before starting the Python service so the
+`static_dist/` assets are available for browser traffic.
+
+## Pairing With `teadata-app`
+
+`teadata-mcp` can run as a companion assistant service for `teadata-app`.
+
+Recommended pattern:
+
+- keep a website-assistant deployment behind shared-signing-key SSO
+- keep a separate public MCP deployment for ChatGPT or other external clients
+
+This split lets you protect browser access for website users without forcing the
+same auth model onto non-browser MCP clients.
+
+### `teadata-app` Environment
+
+Set these on the Django application:
+
+- `TEADATA_ASSISTANT_ENABLED=1`
+- `TEADATA_ASSISTANT_URL`
+- `TEADATA_ASSISTANT_SSO_SECRET`
+- `TEADATA_ASSISTANT_COOKIE_DOMAIN`
+- `TEADATA_ASSISTANT_COOKIE_NAME`
+- `TEADATA_ASSISTANT_SSO_TTL_SECONDS`
+
+### `teadata-mcp` Environment
+
+Set these on the assistant service:
+
+- `TEADATA_ASSISTANT_SSO_SECRET`
+- `TEADATA_ASSISTANT_COOKIE_NAME`
+- `TEADATA_ASSISTANT_LAUNCH_URL`
+- `TEADATA_ASSISTANT_ENFORCE_SSO`
+- `TEADATA_ASSISTANT_SSO_SKEW_SECONDS`
+- `TEADATA_DEBUG` or `DEBUG`
+
+### Auth Behavior
+
+- browser UI requests redirect unauthenticated users to the configured launch URL
+- API and MCP transport endpoints return `401` when SSO enforcement is enabled
+- non-browser clients may supply a bearer token instead of a cookie
+
+## Working With Large Responses
+
+Texas school data gets large quickly, especially for map and boundary workflows.
+This repo includes several controls to keep responses useful inside assistant
+clients:
+
+- `response_profile` to choose map-only, list-only, or combined payloads
+- `campus_meta_fields` / `meta_fields` to request only the metrics you need
+- `campus_list_format` to keep list payloads compact
+- pagination plus `next_tool_call` guidance for follow-up requests
+- export resources for CSV/JSON retrieval when full result sets are too large
+
+If you are designing prompts or integrating a client, use the tooling guide and
+follow-up calls rather than falling back to web search.
+
+## Files Worth Knowing
+
+- `SAMPLE_QUERIES.md`: example requests and assistant flows
+- `PLAN.md`: implementation roadmap / planning notes
+- `TODO.md`: active task inventory
+- `src/teadata_mcp/tooling_guide.py`: prompt-routing guidance
+
+## Data and Privacy Notes
+
+- The underlying data is public Texas education data.
+- The service is designed to expose structured public information, not user-specific private records.
+- If you enable SSO or bearer-token protection, secrets should live in environment variables or platform secret stores, never in committed config.
+
+## Related Repositories
+
+- [`teadata`](https://github.com/adpena/teadata): core Texas education data toolkit
+- `teadata-app`: companion Django website and SSO launcher
+
+## License
+
+MIT
