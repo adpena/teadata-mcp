@@ -198,4 +198,4 @@ follow-up calls rather than falling back to web search.
 
 ## License
 
-MIT
+Apache License 2.0. See [LICENSE](LICENSE).
