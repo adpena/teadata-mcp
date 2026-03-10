@@ -62,6 +62,7 @@ dmypy.json
 
 # Type checker caches
 .mypy_cache/
+.uv-cache/
 
 # =========================
 # Build / packaging artifacts
@@ -201,6 +202,11 @@ config.toml
 
 # Frontend test runtime files
 frontend/.vitest-localstorage.json
+frontend/.vite/
+frontend/coverage/
+frontend/dist/
+frontend/node_modules/
+static_dist/
 
 # If you publish starter templates, do not ignore those:
 # config.example.yaml
