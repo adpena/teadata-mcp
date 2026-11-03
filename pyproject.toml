@@ -35,6 +35,10 @@ dev = [
 [tool.uv.sources]
 teadata = { git = "https://github.com/adpena/teadata.git" }
 
+[tool.uv]
+# CVE-2026-28684: constrain the transitive dependency from MCP.
+constraint-dependencies = ["python-dotenv>=1.2.2"]
+
 [tool.pytest.ini_options]
 pythonpath = [
     "src",
